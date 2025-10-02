@@ -1,15 +1,21 @@
 using ClothingShop.Api.Data;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bind connection string (?u tiên ENV khi deploy)
 var cs = builder.Configuration.GetConnectionString("Default")
          ?? builder.Configuration["DATABASE_URL"]
          ?? throw new Exception("No connection string configured.");
 
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseNpgsql(cs));
+
+// Add FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
