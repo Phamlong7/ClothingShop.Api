@@ -51,11 +51,15 @@ public class VnPayService
 
         // Build raw string for signature
         var signDataRaw = string.Join('&', vnp_Params.Select(kv => $"{kv.Key}={kv.Value}"));
-        var secureHash = CryptoHelper.HmacSHA512(hashSecret, signDataRaw).ToLowerInvariant();
+        // Per some VNPAY sandbox configurations: send uppercase HEX and include vnp_SecureHashType=HmacSHA512 on URL
+        var secureHash = Convert.ToHexString(
+            new System.Security.Cryptography.HMACSHA512(Encoding.UTF8.GetBytes(hashSecret))
+                .ComputeHash(Encoding.UTF8.GetBytes(signDataRaw))
+        );
 
         // Build encoded query
         var queryEncoded = string.Join('&', vnp_Params.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
-        var payUrl = $"{baseUrl}?{queryEncoded}&vnp_SecureHash={secureHash}";
+        var payUrl = $"{baseUrl}?{queryEncoded}&vnp_SecureHashType=HmacSHA512&vnp_SecureHash={secureHash}";
 
         _logger.LogInformation("VNPAY Raw Sign Data: {SignData}", signDataRaw);
         _logger.LogInformation("VNPAY Payment URL: {PaymentUrl}", payUrl);
