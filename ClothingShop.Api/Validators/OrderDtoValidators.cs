@@ -7,7 +7,9 @@ public class PlaceOrderDtoValidator : AbstractValidator<PlaceOrderDto>
 {
     public PlaceOrderDtoValidator()
     {
-        // optional field, no rules for now
+        RuleFor(x => x.PaymentMethod)
+            .Must(pm => string.IsNullOrWhiteSpace(pm) || new[] { "simulate", "payos", "vnpay" }.Contains(pm.ToLowerInvariant()))
+            .WithMessage("paymentMethod must be one of: simulate, payos, vnpay");
     }
 }
 

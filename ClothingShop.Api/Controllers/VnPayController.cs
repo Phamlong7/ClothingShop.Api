@@ -67,8 +67,17 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
         var sorted = new SortedDictionary<string, string>(vnp_Params);
         var signData = string.Join('&', sorted.Select(kvp => $"{kvp.Key}={kvp.Value}"));
         var calcHash = CryptoHelper.HmacSHA512(hashSecret, signData);
-        if (!calcHash.Equals(receivedHash, StringComparison.OrdinalIgnoreCase))
+        try
+        {
+            var calcBytes = Convert.FromHexString(calcHash);
+            var recvBytes = Convert.FromHexString(receivedHash);
+            if (calcBytes.Length != recvBytes.Length || !CryptographicOperations.FixedTimeEquals(calcBytes, recvBytes))
+                return BadRequest(new { message = "Invalid signature" });
+        }
+        catch
+        {
             return BadRequest(new { message = "Invalid signature" });
+        }
 
         var code = sorted.GetValueOrDefault("vnp_TxnRef");
         var transStatus = sorted.GetValueOrDefault("vnp_TransactionStatus");

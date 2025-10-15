@@ -22,9 +22,19 @@ public class PayosWebhookController(AppDbContext db, IConfiguration configuratio
         if (!string.IsNullOrWhiteSpace(secret) && !string.IsNullOrWhiteSpace(signature))
         {
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
-            var computed = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(body))).ToLowerInvariant();
-            if (!computed.Equals(signature, StringComparison.OrdinalIgnoreCase))
+            var computedBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(body));
+            try
+            {
+                var signatureBytes = Convert.FromHexString(signature.Trim().ToLowerInvariant());
+                if (signatureBytes.Length != computedBytes.Length || !CryptographicOperations.FixedTimeEquals(computedBytes, signatureBytes))
+                {
+                    return Unauthorized();
+                }
+            }
+            catch
+            {
                 return Unauthorized();
+            }
         }
 
         // Minimal parse to get order code and status
