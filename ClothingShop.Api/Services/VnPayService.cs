@@ -1,4 +1,5 @@
 using System.Text;
+using System.Net;
 using ClothingShop.Api.Models;
 using ClothingShop.Api.Utils;
 using Microsoft.Extensions.Logging;
@@ -49,22 +50,28 @@ public class VnPayService
             ["vnp_TxnRef"] = order.Id.ToString("N")
         };
 
-        // Build raw string for signature
-        var signDataRaw = string.Join('&', vnp_Params.Select(kv => $"{kv.Key}={kv.Value}"));
-        // Per some VNPAY sandbox configurations: send uppercase HEX and include vnp_SecureHashType=HmacSHA512 on URL
+        // Encode per application/x-www-form-urlencoded (space as '+')
+        static string EncodeForm(string value)
+        {
+            var enc = WebUtility.UrlEncode(value) ?? string.Empty;
+            return enc.Replace("%20", "+");
+        }
+
+        // Build encoded query in sorted order and sign EXACTLY this encoded string
+        var encodedPairs = vnp_Params.Select(kv => $"{kv.Key}={EncodeForm(kv.Value)}");
+        var signData = string.Join('&', encodedPairs);
+
         var secureHash = Convert.ToHexString(
             new System.Security.Cryptography.HMACSHA512(Encoding.UTF8.GetBytes(hashSecret))
-                .ComputeHash(Encoding.UTF8.GetBytes(signDataRaw))
+                .ComputeHash(Encoding.UTF8.GetBytes(signData))
         );
 
-        // Build encoded query
-        var queryEncoded = string.Join('&', vnp_Params.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
-        var payUrl = $"{baseUrl}?{queryEncoded}&vnp_SecureHashType=HmacSHA512&vnp_SecureHash={secureHash}";
+        var payUrl = $"{baseUrl}?{signData}&vnp_SecureHashType=HmacSHA512&vnp_SecureHash={secureHash}";
 
-        _logger.LogInformation("VNPAY Raw Sign Data: {SignData}", signDataRaw);
+        _logger.LogInformation("VNPAY Encoded Sign Data: {SignData}", signData);
         _logger.LogInformation("VNPAY Payment URL: {PaymentUrl}", payUrl);
 
-        return (payUrl, signDataRaw);
+        return (payUrl, signData);
     }
 }
 
