@@ -17,7 +17,8 @@ public class PayosWebhookController(AppDbContext db, IConfiguration configuratio
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var body = await reader.ReadToEndAsync();
         var signature = Request.Headers["X-Payos-Signature"].ToString();
-        var secret = configuration["PayOS:WebhookSecret"];
+        // PayOS uses ChecksumKey for webhook signature verification
+        var secret = configuration["PayOS:ChecksumKey"];
 
         if (!string.IsNullOrWhiteSpace(secret) && !string.IsNullOrWhiteSpace(signature))
         {
@@ -37,24 +38,39 @@ public class PayosWebhookController(AppDbContext db, IConfiguration configuratio
             }
         }
 
-        // Minimal parse to get order code and status
+        // Parse JSON payload (be tolerant to structure changes)
         var doc = System.Text.Json.JsonDocument.Parse(body);
-        if (!doc.RootElement.TryGetProperty("data", out var data)) return BadRequest();
-        var orderCode = data.GetProperty("orderCode").GetString();
-        var status = data.GetProperty("status").GetString();
+        var root = doc.RootElement;
+        System.Text.Json.JsonElement data = root;
+        if (root.TryGetProperty("data", out var d)) data = d;
+
+        string? orderCode = null;
+        if (data.TryGetProperty("orderCode", out var oc)) orderCode = oc.GetString();
+        else if (root.TryGetProperty("orderCode", out var oc2)) orderCode = oc2.GetString();
+
+        string? status = null;
+        if (data.TryGetProperty("status", out var st)) status = st.GetString();
+        else if (root.TryGetProperty("status", out var st2)) status = st2.GetString();
         if (string.IsNullOrWhiteSpace(orderCode)) return BadRequest();
 
-        if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase))
+        if (!Guid.TryParse(orderCode, out var id)) return BadRequest();
+        var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id);
+        if (order is null) return Ok(new { ok = true });
+
+        if (!string.IsNullOrWhiteSpace(status))
         {
-            if (!Guid.TryParse(orderCode, out var id))
-                return BadRequest();
-            var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id);
-            if (order is not null)
+            if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase))
             {
                 order.Status = "paid";
-                await db.SaveChangesAsync();
+            }
+            else if (string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(status, "FAILED", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
+            {
+                order.Status = "failed";
             }
         }
+        await db.SaveChangesAsync();
 
         return Ok(new { ok = true });
     }

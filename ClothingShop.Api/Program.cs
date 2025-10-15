@@ -30,6 +30,12 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 // VNPAY
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<VnPayService>();
+builder.Services.AddScoped<ExchangeRateService>();
+builder.Services.AddHttpClient("exchange", c =>
+{
+    c.BaseAddress = new Uri("https://api.exchangerate.host");
+    c.Timeout = TimeSpan.FromSeconds(5);
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

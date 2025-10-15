@@ -80,10 +80,30 @@ Header: `Authorization: Bearer <token>`
 ## Orders (auth required)
 
 - GET `/api/orders`
-  - Response: `Order[]`
+  - Response: Array of orders with embedded product info per item:
+  - Example response item:
+```
+{
+  id: string,
+  userId: string,
+  totalAmount: number,
+  status: "pending" | "paid" | "failed",
+  createdAt: string,
+  items: [
+    {
+      id: string,
+      orderId: string,
+      productId: string,
+      quantity: number,
+      unitPrice: number,
+      product: { id: string, name: string, image?: string, price: number }
+    }
+  ]
+}
+```
 
 - GET `/api/orders/{id}`
-  - Response: `Order`
+  - Response: Single order with the same embedded `product` object for each item (see shape above)
 
 - POST `/api/orders`
   - Body:
@@ -94,6 +114,9 @@ Header: `Authorization: Bearer <token>`
 
 - POST `/api/orders/{id}/pay` (simulate)
   - Response: `200 OK` Order with `status: "paid"`
+
+- DELETE `/api/orders/{id}`
+  - Response: `200 OK { ok: true }`
 
 Order shapes:
 ```
@@ -115,16 +138,20 @@ OrderItem {
 }
 ```
 
-## PayOS Webhook
+## Payments
 
-## VNPAY
+### VNPAY
 - POST `/api/vnpay/create/{orderId}` → trả `url` thanh toán cho đơn hàng
-- GET `/api/vnpay/return` → endpoint return/callback; hệ thống xác thực chữ ký và cập nhật order `status = "paid"` khi `vnp_TransactionStatus == "00"`
+- GET `/api/vnpay/return` → xác thực chữ ký và cập nhật order `status = "paid"` khi `vnp_TransactionStatus == "00"`
 
-- POST `/api/payos/webhook`
-  - Used by PayOS to confirm payment
-  - Verifies signature with `PayOS:WebhookSecret`
-  - On success: updates corresponding order `status` to `"paid"`
+Ghi chú:
+- `vnp_Amount` là VND đơn vị nhỏ nhất (×100). Hệ thống quy đổi USD→VND theo tỷ giá sống `exchangerate.host` (fallback cấu hình `VnPay:UsdToVndRate`).
+- Ký HMAC-SHA512 theo form-encoded (space = '+'), `vnp_SecureHashType=HmacSHA512`.
+
+### PayOS
+- Webhook: POST `/api/payos/webhook`
+  - Verify chữ ký header `X-Payos-Signature` = HMAC-SHA256(body, `PayOS:ChecksumKey`) (so sánh constant-time)
+  - Cập nhật trạng thái đơn: `paid` khi thanh toán thành công, `failed` khi cancelled/failed/expired.
 
 ## Error Handling
 

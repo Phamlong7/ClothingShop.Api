@@ -11,12 +11,14 @@ public class VnPayService
     private readonly IConfiguration _configuration;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<VnPayService> _logger;
+    private readonly ExchangeRateService _exchangeRateService;
 
-    public VnPayService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor, ILogger<VnPayService> logger)
+    public VnPayService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor, ILogger<VnPayService> logger, ExchangeRateService exchangeRateService)
     {
         _configuration = configuration;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
+        _exchangeRateService = exchangeRateService;
     }
 
     public (string PaymentUrl, string RawSignData) CreatePaymentUrl(Order order)
@@ -32,12 +34,16 @@ public class VnPayService
         // Vietnam time (UTC+7) in a portable way
         var createDate = DateTime.UtcNow.AddHours(7);
 
+        // Convert total from USD to VND using live rate
+        var usdToVnd = _exchangeRateService.GetUsdToVndAsync().GetAwaiter().GetResult();
+        var amountVnd = Math.Round(order.TotalAmount * usdToVnd, 0, MidpointRounding.AwayFromZero);
+
         var vnp_Params = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
             ["vnp_Version"] = "2.1.0",
             ["vnp_Command"] = "pay",
             ["vnp_TmnCode"] = tmnCode,
-            ["vnp_Amount"] = ((long)Math.Round(order.TotalAmount * 100)).ToString(),
+            ["vnp_Amount"] = ((long)(amountVnd * 100m)).ToString(),
             ["vnp_CreateDate"] = createDate.ToString("yyyyMMddHHmmss"),
             ["vnp_CurrCode"] = "VND",
             ["vnp_IpAddr"] = (httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim())
