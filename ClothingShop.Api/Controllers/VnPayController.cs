@@ -33,16 +33,19 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
             ["vnp_Amount"] = ((long)Math.Round(order.TotalAmount * 100)).ToString(),
             ["vnp_CreateDate"] = DateTime.UtcNow.ToString("yyyyMMddHHmmss"),
             ["vnp_CurrCode"] = "VND",
-            ["vnp_IpAddr"] = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
+            ["vnp_IpAddr"] = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
             ["vnp_Locale"] = "vn",
             ["vnp_OrderInfo"] = $"Order {order.Id}",
             ["vnp_OrderType"] = "other",
             ["vnp_ReturnUrl"] = returnUrl,
-            ["vnp_TxnRef"] = order.Id.ToString("N")
+            ["vnp_TxnRef"] = order.Id.ToString("N"),
+            ["vnp_SecureHashType"] = "HmacSHA512"
         };
 
-        var query = string.Join('&', vnp_Params.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
-        var signData = string.Join('&', vnp_Params.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+        // According to VNPAY, the signed string must use URL-encoded values, keys sorted asc, and exclude vnp_SecureHash
+        var encodedPairs = vnp_Params.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}").ToArray();
+        var signData = string.Join('&', encodedPairs); // encoded string to sign
+        var query = signData; // same ordering/encoding for query before appending vnp_SecureHash
         var secureHash = CryptoHelper.HmacSHA512(hashSecret, signData);
         var payUrl = $"{baseUrl}?{query}&vnp_SecureHash={secureHash}";
 
