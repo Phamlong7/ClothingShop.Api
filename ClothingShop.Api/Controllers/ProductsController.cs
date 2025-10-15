@@ -3,6 +3,7 @@ using ClothingShop.Api.Dtos;
 using ClothingShop.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ClothingShop.Api.Controllers;
 
@@ -36,6 +37,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
         return item is null ? NotFound() : Ok(item);
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] ProductCreateDto dto)
     {
@@ -52,6 +54,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = entity.Id }, entity);
     }
 
+    [Authorize]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpdateDto dto)
     {
@@ -75,6 +78,7 @@ public class ProductsController(AppDbContext db) : ControllerBase
         return Ok(entity);
     }
 
+    [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
