@@ -25,7 +25,8 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
         var baseUrl = cfg["BaseUrl"] ?? "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
         var returnUrl = cfg["ReturnUrl"] ?? string.Empty;
 
-        var vnp_Params = new SortedDictionary<string, string>
+        // Per VNPAY spec: sort by ASCII (ordinal), URL-encode values, sign the encoded query (exclude vnp_SecureHash/_Type)
+        var vnp_Params = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
             ["vnp_Version"] = "2.1.0",
             ["vnp_Command"] = "pay",
@@ -38,14 +39,16 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
             ["vnp_OrderInfo"] = $"Order {order.Id}",
             ["vnp_OrderType"] = "other",
             ["vnp_ReturnUrl"] = returnUrl,
-            ["vnp_TxnRef"] = order.Id.ToString("N"),
-            ["vnp_SecureHashType"] = "HmacSHA512"
+            ["vnp_TxnRef"] = order.Id.ToString("N")
         };
 
-        // According to VNPAY, the signed string must use URL-encoded values, keys sorted asc, and exclude vnp_SecureHash
-        var encodedPairs = vnp_Params.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}").ToArray();
-        var signData = string.Join('&', encodedPairs); // encoded string to sign
-        var query = signData; // same ordering/encoding for query before appending vnp_SecureHash
+        // Build encoded pairs in sorted order
+        var encodedPairs = vnp_Params
+            .Where(kvp => kvp.Key != "vnp_SecureHash" && kvp.Key != "vnp_SecureHashType")
+            .Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}")
+            .ToArray();
+        var signData = string.Join('&', encodedPairs);
+        var query = signData; // send exactly what we sign, then append hash
         var secureHash = CryptoHelper.HmacSHA512(hashSecret, signData);
         var payUrl = $"{baseUrl}?{query}&vnp_SecureHash={secureHash}";
 
