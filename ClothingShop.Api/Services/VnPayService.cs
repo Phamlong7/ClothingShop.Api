@@ -1,6 +1,7 @@
 using System.Text;
 using ClothingShop.Api.Models;
 using ClothingShop.Api.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace ClothingShop.Api.Services;
 
@@ -8,14 +9,16 @@ public class VnPayService
 {
     private readonly IConfiguration _configuration;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<VnPayService> _logger;
 
-    public VnPayService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
+    public VnPayService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor, ILogger<VnPayService> logger)
     {
         _configuration = configuration;
         _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
-    public string CreatePaymentUrl(Order order)
+    public (string PaymentUrl, string RawSignData) CreatePaymentUrl(Order order)
     {
         var cfg = _configuration.GetSection("VnPay");
         var tmnCode = (cfg["TmnCode"] ?? string.Empty).Trim();
@@ -48,13 +51,16 @@ public class VnPayService
 
         // Build raw string for signature
         var signDataRaw = string.Join('&', vnp_Params.Select(kv => $"{kv.Key}={kv.Value}"));
-        var secureHash = CryptoHelper.HmacSHA512(hashSecret, signDataRaw);
+        var secureHash = CryptoHelper.HmacSHA512(hashSecret, signDataRaw).ToLowerInvariant();
 
         // Build encoded query
         var queryEncoded = string.Join('&', vnp_Params.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
         var payUrl = $"{baseUrl}?{queryEncoded}&vnp_SecureHash={secureHash}";
 
-        return payUrl;
+        _logger.LogInformation("VNPAY Raw Sign Data: {SignData}", signDataRaw);
+        _logger.LogInformation("VNPAY Payment URL: {PaymentUrl}", payUrl);
+
+        return (payUrl, signDataRaw);
     }
 }
 

@@ -81,8 +81,8 @@ public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFact
         // If client requests VNPAY payment link, create it via service
         if (string.Equals(dto.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
         {
-            var payUrl = vnPayService.CreatePaymentUrl(order);
-            return CreatedAtAction(nameof(GetById), new { id = order.Id }, new { order, vnpay = new { url = payUrl } });
+            var (payUrl, rawSignData) = vnPayService.CreatePaymentUrl(order);
+            return CreatedAtAction(nameof(GetById), new { id = order.Id }, new { order, vnpay = new { url = payUrl, debug_sign_data = rawSignData } });
         }
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
     }
