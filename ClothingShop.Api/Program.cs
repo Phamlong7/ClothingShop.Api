@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics;
 using ClothingShop.Api.Middleware;
+using ClothingShop.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,10 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+// VNPAY
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<VnPayService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

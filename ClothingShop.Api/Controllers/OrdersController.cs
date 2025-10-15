@@ -5,6 +5,7 @@ using ClothingShop.Api.Data;
 using ClothingShop.Api.Dtos;
 using ClothingShop.Api.Models;
 using ClothingShop.Api.Utils;
+using ClothingShop.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace ClothingShop.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFactory, IConfiguration configuration) : BaseController
+public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFactory, IConfiguration configuration, VnPayService vnPayService) : BaseController
 {
 
     [HttpGet]
@@ -77,34 +78,10 @@ public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFact
                 return CreatedAtAction(nameof(GetById), new { id = order.Id }, new { order, payos = payload });
             }
         }
-        // If client requests VNPAY payment link, create it
+        // If client requests VNPAY payment link, create it via service
         if (string.Equals(dto.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
         {
-            var cfg = configuration.GetSection("VnPay");
-            var baseUrl = cfg["BaseUrl"] ?? "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-            var returnUrl = cfg["ReturnUrl"] ?? string.Empty;
-            var tmn = cfg["TmnCode"] ?? string.Empty;
-            var secret = cfg["HashSecret"] ?? string.Empty;
-
-            var vnp = new SortedDictionary<string, string>
-            {
-                ["vnp_Version"] = "2.1.0",
-                ["vnp_Command"] = "pay",
-                ["vnp_TmnCode"] = tmn,
-                ["vnp_Amount"] = ((long)Math.Round(order.TotalAmount * 100)).ToString(),
-                ["vnp_CreateDate"] = DateTime.UtcNow.ToString("yyyyMMddHHmmss"),
-                ["vnp_CurrCode"] = "VND",
-                ["vnp_IpAddr"] = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
-                ["vnp_Locale"] = "vn",
-                ["vnp_OrderInfo"] = $"Order {order.Id}",
-                ["vnp_OrderType"] = "other",
-                ["vnp_ReturnUrl"] = returnUrl,
-                ["vnp_TxnRef"] = order.Id.ToString("N")
-            };
-            var query = string.Join('&', vnp.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
-            var signData = string.Join('&', vnp.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-            var hash = CryptoHelper.HmacSHA512(secret, signData);
-            var payUrl = $"{baseUrl}?{query}&vnp_SecureHash={hash}";
+            var payUrl = vnPayService.CreatePaymentUrl(order);
             return CreatedAtAction(nameof(GetById), new { id = order.Id }, new { order, vnpay = new { url = payUrl } });
         }
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
