@@ -36,7 +36,8 @@ public class PayosWebhookController(AppDbContext db, IConfiguration configuratio
 
         if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase))
         {
-            var id = Guid.Parse(orderCode);
+            if (!Guid.TryParse(orderCode, out var id))
+                return BadRequest();
             var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id);
             if (order is not null)
             {

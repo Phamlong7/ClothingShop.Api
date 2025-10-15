@@ -11,9 +11,8 @@ namespace ClothingShop.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CartController(AppDbContext db) : ControllerBase
+public class CartController(AppDbContext db) : BaseController
 {
-    private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
     [HttpGet]
     public async Task<IActionResult> Get()

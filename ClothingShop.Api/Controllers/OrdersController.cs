@@ -4,6 +4,7 @@ using System.Security.Claims;
 using ClothingShop.Api.Data;
 using ClothingShop.Api.Dtos;
 using ClothingShop.Api.Models;
+using ClothingShop.Api.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,9 +14,8 @@ namespace ClothingShop.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFactory, IConfiguration configuration) : ControllerBase
+public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFactory, IConfiguration configuration) : BaseController
 {
-    private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
     [HttpGet]
     public async Task<IActionResult> List()
@@ -100,13 +100,7 @@ public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFact
             };
             var query = string.Join('&', vnp.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
             var signData = string.Join('&', vnp.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-            string HmacSHA512(string key, string input)
-            {
-                using var hmac = new System.Security.Cryptography.HMACSHA512(Encoding.UTF8.GetBytes(key));
-                var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(input));
-                return BitConverter.ToString(hash).Replace("-", string.Empty);
-            }
-            var hash = HmacSHA512(secret, signData);
+            var hash = CryptoHelper.HmacSHA512(secret, signData);
             var payUrl = $"{baseUrl}?{query}&vnp_SecureHash={hash}";
             return CreatedAtAction(nameof(GetById), new { id = order.Id }, new { order, vnpay = new { url = payUrl } });
         }

@@ -1,4 +1,5 @@
 using ClothingShop.Api.Data;
+using ClothingShop.Api.Models;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
@@ -28,41 +29,54 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add Identity services for password hashing
+builder.Services.AddIdentityCore<User>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 8;
+})
+.AddEntityFrameworkStores<AppDbContext>();
+
 // CORS cho frontend t?nh
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()
 ));
 
-// JWT Authentication (enabled when Jwt:Key is configured)
+// JWT Authentication (required for security)
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? jwtIssuer;
 
-if (!string.IsNullOrWhiteSpace(jwtKey))
+if (string.IsNullOrWhiteSpace(jwtKey))
 {
-    var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
-    builder.Services
-        .AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            options.RequireHttpsMetadata = false;
-            options.SaveToken = true;
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-                ValidateIssuer = !string.IsNullOrWhiteSpace(jwtIssuer),
-                ValidateAudience = !string.IsNullOrWhiteSpace(jwtAudience),
-                ValidIssuer = jwtIssuer,
-                ValidAudience = jwtAudience,
-                ClockSkew = TimeSpan.Zero
-            };
-        });
+    throw new InvalidOperationException("JWT key is required for authentication. Please configure 'Jwt:Key' in appsettings.json");
 }
+
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+            ValidateIssuer = !string.IsNullOrWhiteSpace(jwtIssuer),
+            ValidateAudience = !string.IsNullOrWhiteSpace(jwtAudience),
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 // PayOS HttpClient
 builder.Services.AddHttpClient("payos", (sp, http) =>
@@ -162,11 +176,8 @@ app.UseExceptionHandler(errorApp =>
 // Optionally render status code pages
 app.UseStatusCodePages();
 
-if (!string.IsNullOrWhiteSpace(jwtKey))
-{
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

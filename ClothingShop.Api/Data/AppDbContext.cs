@@ -1,12 +1,13 @@
 ﻿using ClothingShop.Api.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClothingShop.Api.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<User, IdentityRole<Guid>, Guid>(options)
 {
     public DbSet<Product> Products => Set<Product>();
-    public DbSet<User> Users => Set<User>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
@@ -20,11 +21,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(p => p.Price).HasColumnType("numeric(12,2)");
         });
 
-        b.Entity<User>(e =>
-        {
-            e.HasIndex(u => u.Email).IsUnique();
-            e.Property(u => u.Email).IsRequired().HasMaxLength(320);
-        });
 
         b.Entity<CartItem>(e =>
         {

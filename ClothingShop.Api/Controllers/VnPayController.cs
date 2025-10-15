@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using ClothingShop.Api.Data;
+using ClothingShop.Api.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,7 +43,7 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
 
         var query = string.Join('&', vnp_Params.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}"));
         var signData = string.Join('&', vnp_Params.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-        var secureHash = HmacSHA512(hashSecret, signData);
+        var secureHash = CryptoHelper.HmacSHA512(hashSecret, signData);
         var payUrl = $"{baseUrl}?{query}&vnp_SecureHash={secureHash}";
 
         return Ok(new { url = payUrl });
@@ -65,7 +66,7 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
         vnp_Params.Remove("vnp_SecureHash");
         var sorted = new SortedDictionary<string, string>(vnp_Params);
         var signData = string.Join('&', sorted.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-        var calcHash = HmacSHA512(hashSecret, signData);
+        var calcHash = CryptoHelper.HmacSHA512(hashSecret, signData);
         if (!calcHash.Equals(receivedHash, StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { message = "Invalid signature" });
 
@@ -84,12 +85,6 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
         return Ok(new { ok = true });
     }
 
-    private static string HmacSHA512(string key, string input)
-    {
-        using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(key));
-        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(input));
-        return BitConverter.ToString(hash).Replace("-", string.Empty);
-    }
 }
 
 
