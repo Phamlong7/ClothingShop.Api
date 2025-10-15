@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ClothingShop.Api.Data;
 using ClothingShop.Api.Utils;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,7 @@ namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/vnpay")] 
-public class VnPayController(AppDbContext db, IConfiguration configuration) : ControllerBase
+public class VnPayController(AppDbContext db, IConfiguration configuration, ILogger<VnPayController> logger) : ControllerBase
 {
     // Create payment URL for an order (simple, unsecured demo)
     [HttpPost("create/{orderId:guid}")]
@@ -51,6 +52,10 @@ public class VnPayController(AppDbContext db, IConfiguration configuration) : Co
         var query = signData; // send exactly what we sign, then append hash
         var secureHash = CryptoHelper.HmacSHA512(hashSecret, signData);
         var payUrl = $"{baseUrl}?{query}&vnp_SecureHash={secureHash}";
+
+        // TEMP DEBUG LOGS (remove after verifying): signData must equal query before &vnp_SecureHash
+        logger.LogInformation("VNPAY signData: {signData}", signData);
+        logger.LogInformation("VNPAY payUrl: {payUrl}", payUrl);
 
         return Ok(new { url = payUrl });
     }
