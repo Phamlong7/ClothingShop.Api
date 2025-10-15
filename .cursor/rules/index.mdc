@@ -1,0 +1,1782 @@
+---
+alwaysApply: true
+---
+
+## PROJECT RULES (ClothingShop.Api)
+
+- **Primary language for assets**: All code, comments, commit messages, API docs must be written in English. Explanations to the user can be in Vietnamese if requested.
+- **API style**: ASP.NET Core Web API under base path `/api/*`. Use attribute routing on controllers (e.g., `ProductsController`).
+- **Data access**: Use `AppDbContext` (EF Core, Npgsql) via DI inside controllers and services. Do not embed connection strings in code; read from `appsettings.json`/environment.
+- **DTO and Validation**: Expose request/response DTOs; validate using FluentValidation validators registered for each DTO. DataAnnotations may exist but prefer FluentValidation for business rules.
+- **Product domain**: `Product` requires `Name`, `Description`, `Price`; optional `Image` as URL. Timestamps `CreatedAt`/`UpdatedAt` are maintained by API.
+- **Endpoints (Products)**:
+  - GET `/api/products` supports pagination (`page`, `limit`) and optional search query `q`. Returns `{ data, total, page, pages }`.
+  - GET `/api/products/{id}` returns `404` when not found.
+  - POST `/api/products` returns `201` with `Location` header via `CreatedAtAction`.
+  - PUT `/api/products/{id}` returns `404` when not found; returns updated entity on success.
+  - DELETE `/api/products/{id}` returns `404` when not found; returns `{ ok: true }` on success.
+- **Image handling**: Currently only URL is supported. Binary file upload (`multipart/form-data`) is not implemented unless explicitly added.
+- **Error handling**: Prefer standard status codes (`400` validation errors via FluentValidation, `404` not found, `201` created). Avoid exposing internal exceptions.
+- **Migrations**: Use EF Core migrations for schema changes.
+
+---
+
+## CODE SNIPPETS
+
+TITLE: Run .NET IoT Sense HAT Quickstart Script (Bash)
+DESCRIPTION: Downloads and executes a shell script that installs the .NET SDK, clones the Sense HAT quickstart project from GitHub, builds it, and runs it. This script is essential for setting up and launching the project.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/iot/quickstarts/sensehat_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+. <(wget -q -O - https://aka.ms/dotnet-iot-sensehat-quickstart)
+```
+
+--------------------------------
+
+TITLE: Clone .NET 9 Example Solution using Git
+DESCRIPTION: This command clones the .NET 9 example solution named 'mslearn-dotnet-cloudnative-devops' and saves it locally as 'eShopLite'. Ensure Git is installed and configured on your system.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+git clone https://github.com/MicrosoftDocs/mslearn-dotnet-cloudnative-devops.git eShopLite
+```
+
+--------------------------------
+
+TITLE: Install OpenAI Packages
+DESCRIPTION: Installs necessary NuGet packages for interacting with OpenAI services. This includes OpenAI client and configuration extensions.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/build-chat-app_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+dotnet add package OpenAI
+dotnet add package Microsoft.Extensions.AI.OpenAI --prerelease
+dotnet add package Microsoft.Extensions.Configuration
+dotnet add package Microsoft.Extensions.Configuration.UserSecrets
+```
+
+--------------------------------
+
+TITLE: Install Azure OpenAI Packages
+DESCRIPTION: Installs necessary NuGet packages for interacting with Azure OpenAI services. This includes authentication, OpenAI client, and configuration extensions.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/build-chat-app_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+dotnet add package Azure.Identity
+dotnet add package Azure.AI.OpenAI
+dotnet add package Microsoft.Extensions.AI.OpenAI --prerelease
+dotnet add package Microsoft.Extensions.Configuration
+dotnet add package Microsoft.Extensions.Configuration.UserSecrets
+```
+
+--------------------------------
+
+TITLE: Install Git on Raspberry Pi (Bash)
+DESCRIPTION: Installs the latest version of Git on a Raspberry Pi using the Advanced Package Tool (apt). This involves updating package information and then installing the git package.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/iot/quickstarts/sensehat_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+sudo apt update
+sudo apt install git
+```
+
+--------------------------------
+
+TITLE: Run .NET IoT Sense HAT Quickstart Script
+DESCRIPTION: This command downloads and executes a script from a provided URL. The script automates the installation of the .NET SDK, cloning of the Sense HAT quickstart project from GitHub, building the project, and running it to demonstrate Sense HAT functionality.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/iot/quickstarts/sensehat
+
+LANGUAGE: Bash
+CODE:
+```bash
+. <(wget -q -O - https://aka.ms/dotnet-iot-sensehat-quickstart)
+
+```
+
+--------------------------------
+
+TITLE: Run Ollama Model
+DESCRIPTION: Starts the specified AI model using Ollama, making it ready for interaction. This command initializes the model and prepares it to receive prompts.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/chat-local-model_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+ollama run phi3:mini
+
+```
+
+--------------------------------
+
+TITLE: Example User Query for Chat App
+DESCRIPTION: This snippet demonstrates a typical user query to the chat application for retrieving specific information about a health plan. It serves as an input example for the chat interface.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template_source=recommendations
+
+LANGUAGE: Text
+CODE:
+```
+What is included in my Northwind Health Plus plan that is not in standard?
+```
+
+--------------------------------
+
+TITLE: Open Project in Visual Studio Code
+DESCRIPTION: Opens the current directory in Visual Studio Code. This command assumes that Visual Studio Code is installed and configured in the system's PATH.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+code .
+```
+
+--------------------------------
+
+TITLE: Authenticate with Azure CLI
+DESCRIPTION: This command signs you into Azure using the Azure Developer CLI. It requires user interaction in a browser to complete the authentication flow. Ensure you have the Azure Developer CLI installed.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template
+
+LANGUAGE: bash
+CODE:
+```bash
+azd auth login
+
+```
+
+--------------------------------
+
+TITLE: Verify Podman Installation
+DESCRIPTION: These commands are used to confirm that Podman has been correctly installed and added to the system's PATH. 'which podman' locates the executable, and 'podman --version' displays the installed version, ensuring it's ready for use.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/setup-tooling
+
+LANGUAGE: bash
+CODE:
+```bash
+which podman
+podman --version
+```
+
+--------------------------------
+
+TITLE: Create and Navigate Project Directory
+DESCRIPTION: Creates a new directory for the project and then changes the current directory to the newly created one. This is a standard way to set up a new project workspace.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+mkdir my-intelligent-app && cd my-intelligent-app
+```
+
+--------------------------------
+
+TITLE: Example Question for Deductible
+DESCRIPTION: This is an example of a question that can be asked to retrieve deductible information. It's used to compare responses with and without semantic ranking.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template_source=recommendations
+
+LANGUAGE: text
+CODE:
+```
+What is my deductible?
+```
+
+--------------------------------
+
+TITLE: List .NET Aspire Templates using CLI
+DESCRIPTION: This command lists all available .NET Aspire project templates installed on your system. It requires the .NET CLI to be installed and configured.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/setup-tooling
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet new list aspire
+
+```
+
+--------------------------------
+
+TITLE: Example Prompt for MCP Server
+DESCRIPTION: This is an example of a user prompt to interact with a configured MCP server, specifically to get city weather information. The prompt is a natural language question that GitHub Copilot can interpret to invoke the appropriate tool.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/build-mcp-server
+
+LANGUAGE: text
+CODE:
+```
+What is the weather in Redmond?
+```
+
+--------------------------------
+
+TITLE: Install Git on Raspberry Pi using APT
+DESCRIPTION: These commands update the package list and install the Git command-line tool on a Raspberry Pi using the Advanced Package Tool (APT). Ensure you have an internet connection and appropriate permissions to run these commands.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/iot/quickstarts/sensehat
+
+LANGUAGE: Bash
+CODE:
+```bash
+sudo apt update
+sudo apt install git
+
+```
+
+--------------------------------
+
+TITLE: Verify Ollama Availability in Bash
+DESCRIPTION: This command verifies if the Ollama executable is available in your system's PATH. It's a prerequisite to ensure Ollama is installed and accessible for running AI models locally. If Ollama is installed correctly, it will display a list of available commands.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/chat-local-model_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+ollama
+```
+
+--------------------------------
+
+TITLE: Clone .NET 9 Example Solution using Git
+DESCRIPTION: This command clones the .NET 9 example solution named 'eShopLite' from a GitHub repository. Ensure you have Git installed and are in the desired directory before execution.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app
+
+LANGUAGE: Bash
+CODE:
+```bash
+git clone https://github.com/MicrosoftDocs/mslearn-dotnet-cloudnative-devops.git eShopLite
+
+```
+
+--------------------------------
+
+TITLE: Initialize project with Azure CLI
+DESCRIPTION: This command initializes a new project by cloning a specified template repository. It sets up the project structure and necessary configuration files for your application. The `-t` flag specifies the template.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template
+
+LANGUAGE: bash
+CODE:
+```bash
+azd init -t azure-search-openai-demo-csharp
+
+```
+
+--------------------------------
+
+TITLE: C# Hello World Program Structure
+DESCRIPTION: Demonstrates the basic structure of a 'Hello World' program in C#, illustrating elements like using directives, namespace, class, and method declarations. This code is a foundational example for understanding the Syntax API's representation of code.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/get-started/syntax-analysis_source=recommendations
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace HelloWorld
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello World!");
+        }
+    }
+}
+```
+
+--------------------------------
+
+TITLE: Start Ollama Server
+DESCRIPTION: This command starts the Ollama local server, which is required for the AI Chat Web App to function. Ensure Ollama is installed and running before proceeding.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/ai-templates
+
+LANGUAGE: bash
+CODE:
+```bash
+ollama serve
+```
+
+--------------------------------
+
+TITLE: Write Your First C# Code - Basic Syntax
+DESCRIPTION: A training module designed to help beginners get started with C# by writing code examples and learning the fundamental syntax of the language.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using System;
+
+public class HelloWorld
+{
+    public static void Main(string[] args)
+    {
+        Console.WriteLine("Hello, C# World!");
+    }
+}
+```
+
+--------------------------------
+
+TITLE: Create .NET Aspire Starter App with Redis using .NET CLI
+DESCRIPTION: Creates a new .NET Aspire Starter Application project named 'AspireSample' and configures it to use Redis for caching. This command utilizes the installed .NET Aspire templates.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/build-your-first-aspire-app
+
+LANGUAGE: bash
+CODE:
+```bash
+dotnet new aspire-starter --use-redis-cache --output AspireSample
+
+```
+
+--------------------------------
+
+TITLE: Run .NET Aspire App Project
+DESCRIPTION: This command executes a specified .NET Aspire application project. It is used to start the application for local testing and development. The command requires the path to the project file as an argument. Successful execution will launch the application.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/build-your-first-aspire-app
+
+LANGUAGE: bash
+CODE:
+```bash
+dotnet run --project AspireSample/AspireSample.AppHost
+
+```
+
+--------------------------------
+
+TITLE: Initialize Project with Azure Developer CLI
+DESCRIPTION: Initializes a new project by cloning a specified GitHub repository using the Azure Developer CLI. This command sets up the project structure and necessary files for development.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+azd init -t azure-search-openai-demo-csharp
+```
+
+--------------------------------
+
+TITLE: Create a .NET Aspire starter app using .NET CLI
+DESCRIPTION: Creates a .NET Aspire starter application, which includes a full solution with a sample UI and a backing API. This template provides a ready-to-run example to explore Aspire's capabilities.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/aspire-sdk-templates
+
+LANGUAGE: bash
+CODE:
+```bash
+dotnet new aspire-starter
+
+```
+
+--------------------------------
+
+TITLE: Create and navigate to project directory
+DESCRIPTION: These commands create a new directory for your project and then change the current directory to the newly created one. This is a standard practice for organizing project files. The `mkdir` command creates the directory, and `cd` changes into it.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template
+
+LANGUAGE: bash
+CODE:
+```bash
+mkdir my-intelligent-app && cd my-intelligent-app
+
+```
+
+--------------------------------
+
+TITLE: Write your first C# code - Training Module
+DESCRIPTION: A training module designed to help beginners get started with C# by writing code examples. It focuses on learning the basic syntax of the C# language.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts_source=recommendations
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using System;
+
+// A simple C# program to print a message.
+public class HelloWorld
+{
+    public static void Main(string[] args)
+    {
+        // This line prints "Hello, C# World!" to the console.
+        Console.WriteLine("Hello, C# World!");
+    }
+}
+
+```
+
+--------------------------------
+
+TITLE: Initialize SpeechSynthesizer and Select Voice (.NET)
+DESCRIPTION: Demonstrates initializing a SpeechSynthesizer instance and selecting a specific installed voice. It shows how to get information about available voices and configure the synthesizer to use a different one.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api/system.speech_view=netframework-4.8
+
+LANGUAGE: C#
+CODE:
+```csharp
+using System.Speech.Synthesis;
+
+// Initialize the SpeechSynthesizer to the default voice.
+SpeechSynthesizer synth = new SpeechSynthesizer();
+
+// Configure the synthesizer to the speaking (Italian) voice.
+// The constructor could also be used:
+// synth.SetOutputToWaveFile(@"output.wav");
+
+// Select a voice that matches the specified culture.
+synth.SelectVoiceByHints(VoiceGender.Female, VoiceAge.Adult, 0, new System.Globalization.CultureInfo("it-IT"));
+
+// Speak a string synchronously.
+synth.Speak("Hello, world!");
+
+// Speak a string asynchronously.
+synth.SpeakAsync("Good morning!");
+
+// Speak SSML synchronously.
+synth.SpeakSsml("<speak>Hello from SSML!</speak>");
+
+// Speak SSML asynchronously.
+synth.SpeakSsmlAsync("<speak>Another SSML example.</speak>");
+
+// Example of setting output to a file
+synth.SetOutputToWaveFile("output.wav");
+
+// Example of appending text to a prompt builder
+PromptBuilder pb = new PromptBuilder();
+pb.AppendText("This is a prompt.");
+synth.Speak(pb);
+
+// Example of adding a lexicon
+// synth.AddLexicon("myLexicon.xml");
+
+// Example of starting a voice with specific styles
+PromptBuilder pbStyle = new PromptBuilder();
+pbStyle.StartVoice("Microsoft Zira Desktop", new System.Globalization.CultureInfo("en-US"));
+pbStyle.AppendText("Speaking with Zira.");
+pbStyle.EndVoice();
+synth.Speak(pbStyle);
+```
+
+--------------------------------
+
+TITLE: Sentiment Analysis Response Example
+DESCRIPTION: This is an example of the output generated by the C# code for sentiment analysis. It shows the 'ResponseText' from the model and the 'ReviewSentiment' detected.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/structured-output_source=recommendations
+
+LANGUAGE: output
+CODE:
+```
+Response text: Certainly, I have analyzed the sentiment of the review you provided.
+Sentiment: Neutral
+```
+
+--------------------------------
+
+TITLE: Delete Azure Resources with Azure Developer CLI
+DESCRIPTION: This command removes all Azure resources created during the tutorial and deletes the source code. Ensure you have the Azure Developer CLI installed.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/get-started-app-chat-template_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+azd down --purge
+```
+
+--------------------------------
+
+TITLE: C# Method Declarations and Access Modifiers
+DESCRIPTION: Demonstrates how to declare methods with different access levels (`public`, `protected`, `abstract`) and modifiers (`virtual`, `abstract`) within a C# class. It shows examples of methods for starting an engine, adding gas, driving, and getting top speed, with placeholder statements.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/methods
+
+LANGUAGE: csharp
+CODE:
+```csharp
+abstract class Motorcycle
+{
+    // Anyone can call this.
+    public void StartEngine() {/* Method statements here */ } 
+
+    // Only derived classes can call this.
+    protected void AddGas(int gallons) { /* Method statements here */ } 
+
+    // Derived classes can override the base class implementation.
+    public virtual int Drive(int miles, int speed) { /* Method statements here */ return 1; } 
+
+    // Derived classes must implement this.
+    public abstract double GetTopSpeed();
+}
+```
+
+--------------------------------
+
+TITLE: C# Basic Console Application Setup
+DESCRIPTION: This snippet sets up a basic C# console application structure within the ProcessTasksAsTheyFinish namespace. It includes the Main method, which is the entry point of the application. This serves as the initial template for the example.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/start-multiple-async-tasks-and-process-them-as-they-complete_source=recommendations
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using System.Diagnostics;
+
+namespace ProcessTasksAsTheyFinish;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        Console.WriteLine("Hello World!");
+    }
+}
+```
+
+--------------------------------
+
+TITLE: Create New .NET Console App
+DESCRIPTION: Creates a new .NET console application in a specified directory. This command sets up the basic project structure for a new application.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/chat-local-model_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+dotnet new console -o LocalAI
+
+```
+
+--------------------------------
+
+TITLE: Start Simulation and Gather Baseline Data in C#
+DESCRIPTION: This C# code snippet initializes a room, takes initial measurements, and prints them to the console. It simulates the start of an environment monitoring process, establishing a baseline for subsequent data analysis. Dependencies include System and custom Room class.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/advanced-topics/performance/ref-tutorial
+
+LANGUAGE: C#
+CODE:
+```csharp
+Console.WriteLine("Press <return> to start simulation");
+Console.ReadLine();
+var room = new Room("gallery");
+var r = new Random();
+
+int counter = 0;
+
+room.TakeMeasurements(
+    m =>
+    {
+        Console.WriteLine(room.Debounce);
+        Console.WriteLine(room.Average);
+        Console.WriteLine();
+        counter++;
+        return counter < 20000;
+    });
+
+```
+
+--------------------------------
+
+TITLE: Create OpenAI and Azure OpenAI Clients in C#
+DESCRIPTION: Initializes clients for interacting with OpenAI and Azure OpenAI services in a C# .NET application. It demonstrates how to set up clients using API keys or Azure identity credentials and obtain assistant and file clients.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/create-assistant_source=recommendations
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using OpenAI;
+using OpenAI.Assistants;
+using OpenAI.Files;
+using Azure.AI.OpenAI;
+using Azure.Identity;
+
+// Create the OpenAI client
+OpenAIClient openAIClient = new("your-apy-key");
+
+// For Azure OpenAI, use the following client instead:
+AzureOpenAIClient azureAIClient = new(
+        new Uri("your-azure-openai-endpoint"),
+        new DefaultAzureCredential());
+
+#pragma warning disable OPENAI001
+AssistantClient assistantClient = openAIClient.GetAssistantClient();
+OpenAIFileClient fileClient = openAIClient.GetOpenAIFileClient();
+
+```
+
+--------------------------------
+
+TITLE: Create C# syntax tree and get root node in C#
+DESCRIPTION: Parses the 'programText' string into a C# syntax tree and retrieves the root node (CompilationUnitSyntax). This is the starting point for analyzing the code structure.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/get-started/syntax-analysis_source=recommendations
+
+LANGUAGE: csharp
+CODE:
+```csharp
+SyntaxTree tree = CSharpSyntaxTree.ParseText(programText);
+CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
+```
+
+--------------------------------
+
+TITLE: Verify .NET SDK Installation (CLI)
+DESCRIPTION: This command verifies the installation of the .NET SDK by displaying its version. It's a crucial step after installing the SDK on any platform.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/maui/get-started/installation_view=net-maui-9
+
+LANGUAGE: .NET CLI
+CODE:
+```bash
+dotnet --version
+```
+
+--------------------------------
+
+TITLE: C# Indexers Example
+DESCRIPTION: Demonstrates how C# indexers allow instances of a class or struct to be accessed like arrays. This enables getting or setting indexed values without specifying the instance member or type, providing a convenient way to access collections or internal data.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/types/boxing-and-unboxing
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using System;
+
+public class MyCollection {
+    private string[] _items = new string[10];
+
+    // Indexer declaration
+    public string this[int index] {
+        get {
+            if (index < 0 || index >= _items.Length) {
+                throw new IndexOutOfRangeException("Index out of bounds.");
+            }
+            return _items[index] ?? "<empty>"; // Return "<empty>" if null
+        }
+        set {
+            if (index < 0 || index >= _items.Length) {
+                throw new IndexOutOfRangeException("Index out of bounds.");
+            }
+            _items[index] = value;
+        }
+    }
+
+    // Property to get the size of the collection
+    public int Count {
+        get { return _items.Length; }
+    }
+
+    public static void Main(string[] args) {
+        MyCollection collection = new MyCollection();
+
+        // Using the indexer to set values
+        collection[0] = "Apple";
+        collection[1] = "Banana";
+        collection[5] = "Cherry";
+
+        // Using the indexer to get values
+        Console.WriteLine($"Item at index 0: {collection[0]}"); // Output: Apple
+        Console.WriteLine($"Item at index 1: {collection[1]}"); // Output: Banana
+        Console.WriteLine($"Item at index 5: {collection[5]}"); // Output: Cherry
+        Console.WriteLine($"Item at index 3: {collection[3]}"); // Output: <empty>
+
+        // Attempting to access out of bounds (will throw exception)
+        try {
+            collection[10] = "Date";
+        } catch (IndexOutOfRangeException ex) {
+            Console.WriteLine(ex.Message); // Output: Index out of bounds.
+        }
+    }
+}
+```
+
+--------------------------------
+
+TITLE: Microsoft.AspNetCore Namespace
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api_view=aspnetcore-5
+
+LANGUAGE: APIDOC
+CODE:
+```
+## ASP.NET Core API Reference v5.0 - Microsoft.AspNetCore Namespace
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Method
+N/A
+
+### Endpoint
+N/A
+
+### Parameters
+N/A
+
+### Request Example
+N/A
+
+### Response
+N/A
+
+### Response Example
+N/A
+```
+
+--------------------------------
+
+TITLE: Microsoft.AspNetCore Namespace
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api_view=aspnetcore-2
+
+LANGUAGE: APIDOC
+CODE:
+```
+## Microsoft.AspNetCore Namespace
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Method
+N/A (Namespace Overview)
+
+### Endpoint
+N/A
+
+### Parameters
+N/A
+
+### Request Example
+N/A
+
+### Response
+N/A
+```
+
+--------------------------------
+
+TITLE: .NET Aspire AppHost Project File Configuration
+DESCRIPTION: This XML snippet configures a .NET Aspire AppHost project. It specifies the SDK, target framework, and includes necessary package references for Aspire hosting. The project file defines dependencies on other projects within the solution.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/build-your-first-aspire-app
+
+LANGUAGE: xml
+CODE:
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>2aa31fdb-0078-4b71-b953-d23432af8a36</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AspireSample.ApiService\AspireSample.ApiService.csproj" />
+    <ProjectReference Include="..\AspireSample.Web\AspireSample.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.0" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="9.5.0" />
+  </ItemGroup>
+
+</Project>
+```
+
+--------------------------------
+
+TITLE: Microsoft.AspNetCore Namespace
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api_view=aspnetcore-6
+
+LANGUAGE: APIDOC
+CODE:
+```
+## Microsoft.AspNetCore Namespace
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Method
+N/A
+
+### Endpoint
+N/A
+
+### Parameters
+N/A
+
+### Request Example
+N/A
+
+### Response
+N/A
+```
+
+--------------------------------
+
+TITLE: AppHost Service Orchestration Logic (C#)
+DESCRIPTION: Defines the application's runtime orchestration using the .NET Aspire AppHost. It configures services, their dependencies, external endpoints, and startup order, leveraging a familiar builder pattern.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/quickstart-build-your-first-aspire-app
+
+LANGUAGE: csharp
+CODE:
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var cache = builder.AddRedis("cache");
+
+var apiService = builder.AddProject<Projects.AspireSample_ApiService>("apiservice");
+
+builder.AddProject<Projects.AspireSample_Web>("webfrontend")
+    .WithExternalHttpEndpoints()
+    .WithReference(cache)
+    .WaitFor(cache)
+    .WithReference(apiService)
+    .WaitFor(apiService);
+
+builder.Build().Run();
+```
+
+--------------------------------
+
+TITLE: Microsoft.AspNetCore Namespace
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api_view=aspnetcore-8
+
+LANGUAGE: APIDOC
+CODE:
+```
+## Microsoft.AspNetCore Namespace
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Method
+N/A
+
+### Endpoint
+N/A
+
+### Parameters
+N/A
+
+### Request Example
+N/A
+
+### Response
+N/A
+```
+
+--------------------------------
+
+TITLE: Create New .NET Console App
+DESCRIPTION: Initializes a new .NET console application in a specified directory. This command is the first step in setting up the project structure.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/build-chat-app_source=recommendations
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet new console -o ChatAppAI
+```
+
+--------------------------------
+
+TITLE: Microsoft.AspNetCore Namespace
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api_view=aspnetcore-10
+
+LANGUAGE: APIDOC
+CODE:
+```
+## ASP.NET Core Namespace
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Method
+N/A
+
+### Endpoint
+N/A
+
+### Parameters
+N/A
+
+### Request Example
+N/A
+
+### Response
+N/A
+```
+
+--------------------------------
+
+TITLE: Pull Ollama Model
+DESCRIPTION: Downloads the specified AI model from the Ollama registry. This command ensures the model is available locally before attempting to run it.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/chat-local-model_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+ollama pull phi3:mini
+
+```
+
+--------------------------------
+
+TITLE: UseStartup<TStartup>(IWebHostBuilder, Func<WebHostBuilderContext,TStartup>)
+DESCRIPTION: Specifies a factory that creates the startup instance to be used by the web host.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.hosting.webhostbuilderextensions_view=aspnetcore-9
+
+LANGUAGE: APIDOC
+CODE:
+```
+## UseStartup<TStartup>(IWebHostBuilder, Func<WebHostBuilderContext,TStartup>)
+
+### Description
+Specify a factory that creates the startup instance to be used by the web host.
+
+### Method
+Extension Method (C#)
+
+### Endpoint
+N/A (This is a method extension, not a REST endpoint)
+
+### Parameters
+#### Type Parameters
+* **TStartup** - The type of the startup class.
+
+#### Parameters
+* **hostBuilder** (IWebHostBuilder) - Required - The IWebHostBuilder to configure.
+* **startupFactory** (Func<WebHostBuilderContext,TStartup>) - Required - A delegate that specifies a factory for the startup class.
+
+### Remarks
+When in a trimmed app, all public methods of `TStartup` are preserved. This should match the Startup type directly (and not a base type).
+
+### Applies to
+* ASP.NET Core 5.0, 6.0, 7.0, 8.0, 9.0, 10.0
+```
+
+--------------------------------
+
+TITLE: Microsoft.AspNetCore Namespace Overview
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api/microsoft_view=aspnetcore-7
+
+LANGUAGE: APIDOC
+CODE:
+```
+## Namespace: Microsoft.AspNetCore
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Key Classes
+*   **WebHost**: Provides convenience methods for creating instances of `IWebHost` and `IWebHostBuilder` with pre-configured defaults.
+
+### Remarks
+For more information about hosting ASP.NET Core apps, see ASP.NET Core Web Host.
+```
+
+--------------------------------
+
+TITLE: Chain of Thought Prompting with Examples (C#)
+DESCRIPTION: This C# code snippet illustrates using examples to guide chain of thought prompting. By providing a structured example with formatting cues, the model is shown how to break down tasks and present step results, facilitating clearer reasoning and output.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/conceptual/chain-of-thought-prompting
+
+LANGUAGE: csharp
+CODE:
+```csharp
+prompt= """
+        Instructions: Compare the pros and cons of EVs and petroleum-fueled vehicles.
+
+        Differences between EVs and petroleum-fueled vehicles:
+        - 
+
+        Differences ordered according to overall impact, highest-impact first: 
+        1. 
+        
+        Summary of vehicle type differences as pros and cons:
+        Pros of EVs
+        1.
+        Pros of petroleum-fueled vehicles
+        1. 
+        """
+```
+
+--------------------------------
+
+TITLE: List .NET Aspire project templates using dotnet CLI
+DESCRIPTION: This command verifies that the .NET Aspire templates are installed by listing all available templates matching the 'aspire' keyword. The output shows template names, short names, languages, and tags. Ensure you have the .NET SDK installed.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/setup-tooling_source=recommendations
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet new list aspire
+```
+
+LANGUAGE: dotnetcli
+CODE:
+```
+dotnet new list aspire
+These templates matched your input: 'aspire'
+
+Template Name                      Short Name              Language  Tags
+---------------------------------  ----------------------  --------  -------------------------------------------------------
+.NET Aspire AppHost               aspire-apphost          [C#]      Common/.NET Aspire/Cloud
+.NET Aspire Empty App              aspire                  [C#]      Common/.NET Aspire/Cloud/Web/Web API/API/Service
+.NET Aspire Service Defaults       aspire-servicedefaults  [C#]      Common/.NET Aspire/Cloud/Web/Web API/API/Service
+.NET Aspire Starter App            aspire-starter          [C#]      Common/.NET Aspire/Blazor/Web/Web API/API/Service/Cloud
+.NET Aspire Test Project (MSTest)  aspire-mstest           [C#]      Common/.NET Aspire/Cloud/Web/Web API/API/Service/Test
+.NET Aspire Test Project (NUnit)   aspire-nunit            [C#]      Common/.NET Aspire/Cloud/Web/Web API/API/Service/Test
+.NET Aspire Test Project (xUnit)   aspire-xunit            [C#]      Common/.NET Aspire/Cloud/Web/Web API/API/Service/Test
+```
+
+--------------------------------
+
+TITLE: Microsoft.AspNetCore Namespace Overview
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api/microsoft_view=aspnetcore-2
+
+LANGUAGE: APIDOC
+CODE:
+```
+## Namespace: Microsoft.AspNetCore
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Remarks
+For more information about hosting ASP.NET Core apps, see ASP.NET Core Web Host.
+```
+
+--------------------------------
+
+TITLE: C# Required Property Usage Examples
+DESCRIPTION: Provides examples of using C# required properties, showing valid initialization through a constructor or object initializer, and highlighting a compilation error for failing to initialize.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/properties
+
+LANGUAGE: csharp
+CODE:
+```csharp
+var aPerson = new Person("John");
+aPerson = new Person { FirstName = "John"};
+// Error CS9035: Required member `Person.FirstName` must be set:
+//aPerson2 = new Person();
+
+```
+
+--------------------------------
+
+TITLE: C# Expression-Bodied Get and Set Accessors
+DESCRIPTION: This C# example showcases expression-bodied members for both `get` and `set` accessors in the `Seconds` property of the `TimePeriod2` class. This concise syntax is suitable when the accessor body consists of a single expression, such as returning or assigning a value to a backing field.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/get
+
+LANGUAGE: csharp
+CODE:
+```csharp
+class TimePeriod2
+{
+    private double _seconds;
+
+    public double Seconds
+    {
+        get => _seconds;
+        set => _seconds = value;
+    }
+}
+```
+
+--------------------------------
+
+TITLE: ASP.NET Core Namespace
+DESCRIPTION: Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api_view=aspnetcore-9
+
+LANGUAGE: APIDOC
+CODE:
+```
+## Microsoft.AspNetCore Namespace
+
+### Description
+Provides types that enable getting started with building an ASP.NET app with opinionated defaults.
+
+### Method
+N/A (Namespace Overview)
+
+### Endpoint
+N/A
+
+### Parameters
+N/A
+
+### Request Example
+N/A
+
+### Response
+N/A
+
+```
+
+--------------------------------
+
+TITLE: Run Aspire AppHost and View Output
+DESCRIPTION: The `aspire run` command executes the AppHost project in development mode. It sets up the Aspire environment, builds and launches defined resources, starts the web dashboard, and displays a list of available endpoints. The command searches for an AppHost project in the current directory or its subdirectories. It also handles the installation and trust of local hosting certificates.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/cli/overview
+
+LANGUAGE: text
+CODE:
+```
+Dashboard:  https://localhost:17178/login?t=17f974bf68e390b0d4548af8d7e38b65
+
+    Logs:  /home/vscode/.aspire/cli/logs/apphost-1295-2025-07-14-18-16-13.log
+
+```
+
+--------------------------------
+
+TITLE: Create Basic .NET Console Application (C#)
+DESCRIPTION: This C# code snippet demonstrates the basic structure of a .NET Core console application. It includes the necessary `using` directive and a simple `Main` method that prints 'Hello World!' to the console. This serves as the initial setup for the example.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/start-multiple-async-tasks-and-process-them-as-they-complete
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using System;
+
+namespace ProcessTasksAsTheyFinish;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        Console.WriteLine("Hello World!");
+    }
+}
+
+```
+
+--------------------------------
+
+TITLE: C# Example of Read-Write Property with Get and Set Accessors
+DESCRIPTION: Illustrates a read-write property in C# with both get and set accessors. The get accessor retrieves the value of a private field, while the set accessor updates the field and triggers additional actions, such as repainting a UI element.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/classes
+
+LANGUAGE: C#
+CODE:
+```csharp
+public class Button : Control
+{
+    private string caption;
+
+    public string Caption
+    {
+        get => caption;
+        set
+        {
+            if (caption != value)
+            {
+                caption = value;
+                Repaint();
+            }
+        }
+    }
+
+    public override void Paint(Graphics g, Rectangle r)
+    {
+        // Painting code goes here
+    }
+}
+
+```
+
+--------------------------------
+
+TITLE: MCP Server Response Example (Output)
+DESCRIPTION: An example of the output received from the MCP server after a successful tool execution. This demonstrates the server's ability to respond to prompts and execute the requested functionality, such as generating a random number.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/build-mcp-server
+
+LANGUAGE: output
+CODE:
+```
+Your random number is 42.
+
+```
+
+--------------------------------
+
+TITLE: Create .NET Console App
+DESCRIPTION: Creates a new .NET console application in a specified directory. This is the initial step for building a .NET AI assistant project.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/create-assistant_source=recommendations
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet new console -o AIAssistant
+```
+
+--------------------------------
+
+TITLE: nameof Operator Usage Examples - C#
+DESCRIPTION: Illustrates various uses of the 'nameof' operator in C#. It shows how to get the names of namespaces, types, members, and generic types, along with examples of invalid usage.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/_csharplang/proposals/csharp-8.0/null-coalescing-assignment
+
+LANGUAGE: C#
+CODE:
+```csharp
+using TestAlias = System.String;
+
+class Program
+{
+    static void Main()
+    {
+        var point = (x: 3, y: 4);
+
+        string n1 = nameof(System);                      // "System"
+        string n2 = nameof(System.Collections.Generic);  // "Generic"
+        string n3 = nameof(point);                       // "point"
+        string n4 = nameof(point.x);                     // "x"
+        string n5 = nameof(Program);                     // "Program"
+        string n6 = nameof(System.Int32);                // "Int32"
+        string n7 = nameof(TestAlias);                   // "TestAlias"
+        string n8 = nameof(List<int>);                   // "List"
+        string n9 = nameof(Program.InstanceMethod);      // "InstanceMethod"
+        string n10 = nameof(Program.GenericMethod);      // "GenericMethod"
+        string n11 = nameof(Program.NestedClass);        // "NestedClass"
+
+        // Invalid
+        // string x1 = nameof(List<>);            // Empty type argument list
+        // string x2 = nameof(List<T>);           // T is not in scope
+        // string x3 = nameof(GenericMethod<>);   // Empty type argument list
+        // string x4 = nameof(GenericMethod<T>);  // T is not in scope
+        // string x5 = nameof(int);               // Keywords not permitted
+        // Type arguments not permitted for method group
+        // string x6 = nameof(GenericMethod<Program>); 
+    }
+
+    void InstanceMethod() { }
+
+    void GenericMethod<T>()
+    {
+        string n1 = nameof(List<T>); // "List"
+        string n2 = nameof(T);       // "T"
+    }
+
+    class NestedClass { }
+}
+```
+
+--------------------------------
+
+TITLE: Create .NET Aspire Starter App using .NET CLI
+DESCRIPTION: Creates a new .NET Aspire starter application with specified configurations, such as using a Redis cache. The `--output` flag specifies the directory for the new project.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/build-your-first-aspire-app_tabs=visual-studio
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet new aspire-starter --use-redis-cache --output AspireSample
+```
+
+--------------------------------
+
+TITLE: C# Interactive 'Hello World' Example
+DESCRIPTION: This code snippet demonstrates a basic 'Hello World' program in C#. It's designed for interactive execution within a browser environment, allowing users to see the direct output of compiled and run code. This is part of an introductory tutorial for learning C#.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/tour-of-csharp/tutorials/hello-world_source=recommendations
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using System;
+
+public class HelloWorld
+{
+    public static void Main(string[] args)
+    {
+        Console.WriteLine("Hello, World!");
+    }
+}
+```
+
+--------------------------------
+
+TITLE: Complete Orleans Client Project Example (C#)
+DESCRIPTION: This complete C# example illustrates a .NET Aspire Orleans client project. It sets up Azure Table Storage for clustering, configures the Orleans client, and defines endpoints for interacting with a `CounterGrain` using HTTP GET and POST requests.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/frameworks/orleans
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using OrleansContracts;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
+builder.AddKeyedAzureTableClient("clustering");
+builder.UseOrleansClient();
+
+var app = builder.Build();
+
+app.MapGet("/counter/{grainId}", async (IClusterClient client, string grainId) =>
+{
+    var grain = client.GetGrain<ICounterGrain>(grainId);
+    return await grain.Get();
+});
+
+app.MapPost("/counter/{grainId}", async (IClusterClient client, string grainId) =>
+{
+    var grain = client.GetGrain<ICounterGrain>(grainId);
+    return await grain.Increment();
+});
+
+app.UseFileServer();
+
+await app.RunAsync();
+```
+
+--------------------------------
+
+TITLE: UseStartup<TStartup>(IWebHostBuilder, Func<WebHostBuilderContext,TStartup>)
+DESCRIPTION: Specifies a factory that creates the startup instance to be used by the web host. This overload allows for custom instantiation logic for the startup type.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.hosting.webhostbuilderextensions_view=aspnetcore-9
+
+LANGUAGE: APIDOC
+CODE:
+```
+## UseStartup<TStartup>(IWebHostBuilder, Func<WebHostBuilderContext,TStartup>)
+
+### Description
+Specify a factory that creates the startup instance to be used by the web host.
+
+### Method
+POST
+
+### Endpoint
+/configure-startup-factory
+
+### Parameters
+#### Path Parameters
+None
+
+#### Query Parameters
+None
+
+#### Request Body
+- **hostBuilder** (IWebHostBuilder) - Required - The IWebHostBuilder to configure.
+- **startupFactory** (Func<WebHostBuilderContext,TStartup>) - Required - A factory function that creates the startup instance.
+```
+
+--------------------------------
+
+TITLE: AI Prompt and Response for Shortening Text (.NET)
+DESCRIPTION: This snippet demonstrates an AI prompt designed to shorten a previous AI response, followed by the AI's abbreviated output. It highlights the AI's ability to refine its verbosity based on chat history and specific instructions, using .NET as the context.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/chat-local-model_source=recommendations
+
+LANGUAGE: text
+CODE:
+```
+Your prompt:
+Shorten the length of each item in the previous response.
+
+AI Response:
+ **Cross-platform Capabilities:** .NET allows building for various operating systems
+through platforms like .NET Core, promoting accessibility (Windows, Linux, macOS).
+
+**Extensive Ecosystem:** Offers a vast library selection via NuGet and tools for web
+(.NET Framework), mobile development (.NET MAUI), IoT, AI, providing rich
+capabilities to developers.
+
+**Type Safety &amp; Reliability:** .NET's CLI model enforces strong typing and automatic
+garbage collection, mitigating runtime errors, thus enhancing application stability.
+```
+
+--------------------------------
+
+TITLE: Navigate to Project Directory
+DESCRIPTION: Changes the current directory to the newly created application folder. This is essential for running subsequent commands within the project context.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/build-chat-app_source=recommendations
+
+LANGUAGE: bash
+CODE:
+```bash
+cd ChatAppAI
+```
+
+--------------------------------
+
+TITLE: C# Example: Object and Collection Initializers
+DESCRIPTION: This example demonstrates combining object and collection initializers in C#. It shows how to initialize a single object with properties and a list of objects using collection initializers. It also illustrates collection expressions for combining lists.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/object-and-collection-initializers
+
+LANGUAGE: C#
+CODE:
+```csharp
+public class InitializationSample
+{
+    public class Cat
+    {
+        // Automatically implemented properties.
+        public int Age { get; set; }
+        public string? Name { get; set; }
+
+        public Cat() { }
+
+        public Cat(string name)
+        {
+            Name = name;
+        }
+    }
+
+    public static void Main()
+    {
+        Cat cat = new Cat { Age = 10, Name = "Fluffy" };
+        Cat sameCat = new Cat("Fluffy"){ Age = 10 };
+
+        List<Cat> cats = new List<Cat>
+        {
+            new Cat { Name = "Sylvester", Age = 8 },
+            new Cat { Name = "Whiskers", Age = 2 },
+            new Cat { Name = "Sasha", Age = 14 }
+        };
+
+        List<Cat?> moreCats = new List<Cat?>
+        {
+            new Cat { Name = "Furrytail", Age = 5 },
+            new Cat { Name = "Peaches", Age = 4 },
+            null
+        };
+
+        List<Cat> allCats = [.. cats, new Cat { Name = "Łapka", Age = 5 }, cat, .. moreCats];
+
+        // Display results.
+        foreach (Cat? c in allCats)
+        {
+            if (c != null)
+            {
+                System.Console.WriteLine(c.Name);
+            }
+            else
+            {
+                System.Console.WriteLine("List element has null value.");
+            }
+        }
+    }
+    // Output:
+    // Sylvester
+    // Whiskers
+    // Sasha
+    // Łapka
+    // Fluffy
+    // Furrytail
+    // Peaches
+    // List element has null value.
+}
+
+```
+
+--------------------------------
+
+TITLE: C# Prompt Example for Structuring AI Output
+DESCRIPTION: This C# code snippet demonstrates how to structure a prompt for an AI model using instructions, categories, and specific cues to format the output. It includes example text for presidential accomplishments and how cues like 'DOMESTIC POLICY' and '- George Washington:' guide the AI's response structure.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/ai/conceptual/prompt-engineering-dotnet
+
+LANGUAGE: csharp
+CODE:
+```csharp
+prompt = """
+Instructions: Summarize US Presidential accomplishments, grouped by category.
+Categories: Domestic Policy, US Economy, Foreign Affairs, Space Exploration.
+Accomplishments: George Washington
+First president of the United States.
+First president to have been a military veteran.
+First president to be elected to a second term in office.
+First president to receive votes from every presidential elector in an election.
+First president to fill the entire body of the United States federal judges; including the Supreme Court.
+First president to be declared an honorary citizen of a foreign country, and an honorary citizen of France.
+John Adams ...  /// Text truncated
+
+DOMESTIC POLICY
+- George Washington: 
+- John Adams: 
+""";
+
+```
+
+--------------------------------
+
+TITLE: C# Example: Using #pragma checksum with a Specific Checksum
+DESCRIPTION: Provides a C# code example illustrating the practical use of the #pragma checksum directive within a class. It shows how to specify the filename, a GUID for the hash algorithm, and the checksum bytes.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/preprocessor-directives
+
+LANGUAGE: csharp
+CODE:
+```csharp
+class TestClass
+{
+    static int Main()
+    {
+        #pragma checksum "file.cs" "{406EA660-64CF-4C82-B6F0-42D48172A799}" "ab007f1d23d9" // New checksum
+    }
+}
+
+```
+
+--------------------------------
+
+TITLE: Create .NET Console App using .NET CLI
+DESCRIPTION: Creates a new .NET Console Application named 'LcdTutorial' and navigates into its directory. This is the initial step for project setup.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/iot/tutorials/lcd-display
+
+LANGUAGE: bash
+CODE:
+```bash
+dotnet new console -o LcdTutorial
+cd LcdTutorial
+```
+
+--------------------------------
+
+TITLE: Query .NET Framework registry in C#
+DESCRIPTION: This C# code snippet demonstrates how to open the appropriate registry key for .NET Framework setup and read the 'Release' value to determine the installed version. It includes a helper function to translate the release key value into a human-readable version string. It handles cases where the .NET Framework might not be installed or detected.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/framework/install/how-to-determine-which-versions-are-installed
+
+LANGUAGE: csharp
+CODE:
+```csharp
+const string subkey = @"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\";
+
+using (RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32))
+using (RegistryKey ndpKey = baseKey.OpenSubKey(subkey))
+{
+    if (ndpKey != null && ndpKey.GetValue("Release") != null)
+        Console.WriteLine($".NET Framework Version: {CheckFor45PlusVersion((int)ndpKey.GetValue("Release"))}");
+    else
+        Console.WriteLine(".NET Framework Version 4.5 or later is not detected.");
+}
+
+// Checking the version using >= enables forward compatibility.
+string CheckFor45PlusVersion(int releaseKey)
+{
+    if (releaseKey >= 533320) return "4.8.1 or later";
+    if (releaseKey >= 528040) return "4.8";
+    if (releaseKey >= 461808) return "4.7.2";
+    if (releaseKey >= 461308) return "4.7.1";
+    if (releaseKey >= 460798) return "4.7";
+    if (releaseKey >= 394802) return "4.6.2";
+    if (releaseKey >= 394254) return "4.6.1";
+    if (releaseKey >= 393295) return "4.6";
+    if (releaseKey >= 379893) return "4.5.2";
+    if (releaseKey >= 378675) return "4.5.1";
+    if (releaseKey >= 378389) return "4.5";
+
+    // This code should never execute. A non-null release key should mean
+    // that 4.5 or later is installed.
+    return "No 4.5 or later version detected";
+}
+
+```
+
+--------------------------------
+
+TITLE: Configure Background Task Services in Program.cs (C#)
+DESCRIPTION: This C# code demonstrates the setup for background tasks in the `Program.cs` file. It uses `HostApplicationBuilder` to configure services, registering `MonitorLoop` as a singleton, `QueuedHostedService` as a hosted service, and `IBackgroundTaskQueue` with a configurable capacity. It then retrieves the `MonitorLoop` service and starts it before running the host.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/core/extensions/queue-service
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using App.QueueService;
+
+HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddSingleton<MonitorLoop>();
+builder.Services.AddHostedService<QueuedHostedService>();
+builder.Services.AddSingleton<IBackgroundTaskQueue>(_ => 
+{
+    if (!int.TryParse(builder.Configuration["QueueCapacity"], out var queueCapacity))
+    {
+        queueCapacity = 100;
+    }
+
+    return new DefaultBackgroundTaskQueue(queueCapacity);
+});
+
+IHost host = builder.Build();
+
+MonitorLoop monitorLoop = host.Services.GetRequiredService<MonitorLoop>()!;
+monitorLoop.StartMonitorLoop();
+
+host.Run();
+
+```
+
+--------------------------------
+
+TITLE: C# Partial Struct and Interface Examples
+DESCRIPTION: Illustrates the application of the 'partial' keyword to interface and struct definitions in C#. This example shows how methods can be declared across multiple partial definitions for interfaces and structs.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/partial-classes-and-methods
+
+LANGUAGE: csharp
+CODE:
+```csharp
+partial interface ITest
+{
+    void Interface_Test();
+}
+
+partial interface ITest
+{
+    void Interface_Test2();
+}
+
+partial struct S1
+{
+    void Struct_Test() { }
+}
+
+partial struct S1
+{
+    void Struct_Test2() { }
+}
+```
+
+--------------------------------
+
+TITLE: Run .NET Projects from CLI
+DESCRIPTION: Executes .NET projects using the 'dotnet run' command. This snippet shows how to run the 'Products' and 'Store' projects individually, specifying their respective project file paths.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app_source=recommendations
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet run --project ./Products/Products.csproj
+```
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet run --project ./Store/Store.csproj
+```
+
+--------------------------------
+
+TITLE: Run AppHost Project using .NET CLI
+DESCRIPTION: This command initiates the .NET Aspire AppHost project, which orchestrates the entire solution. Ensure Docker Desktop or Podman is running, as this command will start the necessary containers. After successful execution, the .NET Aspire dashboard will be accessible for monitoring and interacting with the deployed services.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app_source=recommendations
+
+LANGUAGE: dotnetcli
+CODE:
+```bash
+dotnet run --project ./eShopLite.AppHost/eShopLite.AppHost.csproj
+```
+
+--------------------------------
+
+TITLE: Generic Host Extension Library for .NET
+DESCRIPTION: This snippet shows how to set up a generic host using the `Microsoft.Extensions.Hosting` NuGet package. It demonstrates creating a host builder and running the host, which is a common pattern for background services and web applications in .NET.
+
+SOURCE: https://learn.microsoft.com/en-us/dotnet/standard/runtime-libraries-overview
+
+LANGUAGE: csharp
+CODE:
+```csharp
+using Microsoft.Extensions.Hosting;
+using System;
+using System.Threading.Tasks;
+
+public class GenericHostExample
+{
+    public static async Task Main(string[] args)
+    {
+        var host = Host.CreateDefaultBuilder(args)
+            .ConfigureServices((context, services) => {
+                // Configure services here
+            })
+            .Build();
+
+        Console.WriteLine("Host created. Press Ctrl+C to exit.");
+        await host.RunAsync();
+    }
+}
+```
+
