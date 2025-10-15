@@ -27,7 +27,33 @@ public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFact
             .Where(o => o.UserId == userId)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
-        return Ok(orders);
+
+        var allProductIds = orders.SelectMany(o => o.Items.Select(i => i.ProductId)).Distinct().ToList();
+        var products = await db.Products
+            .Where(p => allProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id);
+
+        var result = orders.Select(o => new
+        {
+            id = o.Id,
+            userId = o.UserId,
+            totalAmount = o.TotalAmount,
+            status = o.Status,
+            createdAt = o.CreatedAt,
+            items = o.Items.Select(i => new
+            {
+                id = i.Id,
+                orderId = i.OrderId,
+                productId = i.ProductId,
+                quantity = i.Quantity,
+                unitPrice = i.UnitPrice,
+                product = products.TryGetValue(i.ProductId, out var p)
+                    ? new { p.Id, p.Name, p.Image, p.Price }
+                    : null
+            })
+        });
+
+        return Ok(result);
     }
 
     [HttpPost]
@@ -93,7 +119,33 @@ public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFact
         var userId = GetUserId();
         var order = await db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
         if (order is null) return NotFound();
-        return Ok(order);
+
+        var productIds = order.Items.Select(i => i.ProductId).Distinct().ToList();
+        var products = await db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id);
+
+        var result = new
+        {
+            id = order.Id,
+            userId = order.UserId,
+            totalAmount = order.TotalAmount,
+            status = order.Status,
+            createdAt = order.CreatedAt,
+            items = order.Items.Select(i => new
+            {
+                id = i.Id,
+                orderId = i.OrderId,
+                productId = i.ProductId,
+                quantity = i.Quantity,
+                unitPrice = i.UnitPrice,
+                product = products.TryGetValue(i.ProductId, out var p)
+                    ? new { p.Id, p.Name, p.Image, p.Price }
+                    : null
+            })
+        };
+
+        return Ok(result);
     }
 
     [HttpPost("{id:guid}/pay")]
@@ -108,6 +160,18 @@ public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFact
         order.Status = "paid";
         await db.SaveChangesAsync();
         return Ok(order);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var userId = GetUserId();
+        var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
+        if (order is null) return NotFound();
+
+        db.Orders.Remove(order);
+        await db.SaveChangesAsync();
+        return Ok(new { ok = true });
     }
 }
 
