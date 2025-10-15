@@ -22,7 +22,7 @@ public class PayosWebhookController(AppDbContext db, IConfiguration configuratio
         if (!string.IsNullOrWhiteSpace(secret) && !string.IsNullOrWhiteSpace(signature))
         {
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
-            var computed = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(body)));
+            var computed = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(body))).ToLowerInvariant();
             if (!computed.Equals(signature, StringComparison.OrdinalIgnoreCase))
                 return Unauthorized();
         }

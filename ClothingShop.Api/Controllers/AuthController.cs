@@ -1,39 +1,41 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
-using ClothingShop.Api.Data;
 using ClothingShop.Api.Dtos;
 using ClothingShop.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(AppDbContext db, IConfiguration config, IPasswordHasher<User> passwordHasher) : ControllerBase
+public class AuthController(IConfiguration config, UserManager<User> userManager) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        var exists = await db.Set<User>().AnyAsync(u => u.Email == dto.Email);
-        if (exists) return BadRequest(new { message = "Email already registered" });
+        var email = dto.Email.Trim().ToLowerInvariant();
+        var exists = await userManager.FindByEmailAsync(email);
+        if (exists is not null) return BadRequest(new { message = "Email already registered" });
 
-        var user = new User { Email = dto.Email.Trim().ToLowerInvariant() };
-        user.PasswordHash = passwordHasher.HashPassword(user, dto.Password);
-        db.Add(user);
-        await db.SaveChangesAsync();
+        var user = new User { Email = email, UserName = email };
+        var result = await userManager.CreateAsync(user, dto.Password);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToArray();
+            return BadRequest(new { message = "Registration failed", errors });
+        }
         return Ok(new { ok = true });
     }
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto dto)
     {
-        var user = await db.Set<User>().FirstOrDefaultAsync(u => u.Email == dto.Email.Trim().ToLowerInvariant());
-        if (user is null || string.IsNullOrEmpty(user.PasswordHash) || passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password) == PasswordVerificationResult.Failed)
+        var email = dto.Email.Trim().ToLowerInvariant();
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null || !await userManager.CheckPasswordAsync(user, dto.Password))
             return Unauthorized(new { message = "Invalid credentials" });
 
         var token = GenerateJwtToken(user);

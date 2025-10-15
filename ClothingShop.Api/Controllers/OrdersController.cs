@@ -43,7 +43,10 @@ public class OrdersController(AppDbContext db, IHttpClientFactory httpClientFact
         decimal total = 0;
         foreach (var c in cartItems)
         {
-            var p = products[c.ProductId];
+            if (!products.TryGetValue(c.ProductId, out var p))
+            {
+                return BadRequest(new { message = $"Product with ID {c.ProductId} is no longer available." });
+            }
             order.Items.Add(new OrderItem
             {
                 ProductId = p.Id,
