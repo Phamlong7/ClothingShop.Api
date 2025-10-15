@@ -33,28 +33,35 @@ public class VnPayController(AppDbContext db, IConfiguration configuration, ILog
             ["vnp_Command"] = "pay",
             ["vnp_TmnCode"] = tmnCode,
             ["vnp_Amount"] = ((long)Math.Round(order.TotalAmount * 100)).ToString(),
-            ["vnp_CreateDate"] = DateTime.UtcNow.ToString("yyyyMMddHHmmss"),
+            ["vnp_CreateDate"] = TimeZoneInfo.ConvertTime(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")).ToString("yyyyMMddHHmmss"),
             ["vnp_CurrCode"] = "VND",
-            ["vnp_IpAddr"] = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
+            ["vnp_IpAddr"] = (HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()) ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
             ["vnp_Locale"] = "vn",
             ["vnp_OrderInfo"] = $"Order {order.Id}",
             ["vnp_OrderType"] = "other",
             ["vnp_ReturnUrl"] = returnUrl,
-            ["vnp_TxnRef"] = order.Id.ToString("N")
+            ["vnp_TxnRef"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString()
         };
 
-        // Build encoded pairs in sorted order
+        // Build raw string to sign (not URL-encoded) and encoded query to send (both in same key order)
+        var rawPairs = vnp_Params
+            .Where(kvp => kvp.Key != "vnp_SecureHash" && kvp.Key != "vnp_SecureHashType")
+            .Select(kvp => $"{kvp.Key}={kvp.Value}")
+            .ToArray();
+        var signDataRaw = string.Join('&', rawPairs);
+
         var encodedPairs = vnp_Params
             .Where(kvp => kvp.Key != "vnp_SecureHash" && kvp.Key != "vnp_SecureHashType")
             .Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}")
             .ToArray();
-        var signData = string.Join('&', encodedPairs);
-        var query = signData; // send exactly what we sign, then append hash
-        var secureHash = CryptoHelper.HmacSHA512(hashSecret, signData);
+        var query = string.Join('&', encodedPairs);
+
+        var secureHash = CryptoHelper.HmacSHA512(hashSecret, signDataRaw);
         var payUrl = $"{baseUrl}?{query}&vnp_SecureHash={secureHash}";
 
-        // TEMP DEBUG LOGS (remove after verifying): signData must equal query before &vnp_SecureHash
-        logger.LogInformation("VNPAY signData: {signData}", signData);
+        // TEMP DEBUG LOGS: compare signDataRaw (raw) and query (encoded)
+        logger.LogInformation("VNPAY signDataRaw: {signDataRaw}", signDataRaw);
+        logger.LogInformation("VNPAY queryEncoded: {query}", query);
         logger.LogInformation("VNPAY payUrl: {payUrl}", payUrl);
 
         return Ok(new { url = payUrl });
