@@ -14,6 +14,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        // Ensure ASP.NET Core Identity entities are configured (primary keys, indexes, relationships)
+        base.OnModelCreating(b);
+
         b.Entity<Product>(e =>
         {
             e.Property(p => p.Name).IsRequired().HasMaxLength(200);
