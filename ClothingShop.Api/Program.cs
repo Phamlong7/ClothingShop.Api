@@ -117,20 +117,7 @@ builder.Services
         };
     });
 
-// PayOS HttpClient
-builder.Services.AddHttpClient("payos", (sp, http) =>
-{
-    var cfg = sp.GetRequiredService<IConfiguration>().GetSection("PayOS");
-    var baseUrl = cfg["ApiBaseUrl"] ?? "https://api.payos.vn/v2";
-    http.BaseAddress = new Uri(baseUrl);
-    var clientId = cfg["ClientId"];
-    var apiKey = cfg["ApiKey"];
-    if (!string.IsNullOrWhiteSpace(clientId) && !string.IsNullOrWhiteSpace(apiKey))
-    {
-        var basic = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{apiKey}"));
-        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", basic);
-    }
-});
+// Removed PayOS HttpClient (PayOS no longer used)
 
 // Accessor for accessing HttpContext in services (used by VnPayService)
 builder.Services.AddHttpContextAccessor();
@@ -141,6 +128,7 @@ builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<VnPayService>();
 builder.Services.AddScoped<ExchangeRateService>();
+builder.Services.AddScoped<StripeService>();
 
 // ProblemDetails & Validation responses
 builder.Services.AddProblemDetails();
