@@ -1,10 +1,12 @@
 using ClothingShop.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/vnpay/ipn")]
+[AllowAnonymous]
 public class VnPayIpnController(OrderService orderService, VnPayService vnPayService, ILogger<VnPayIpnController> logger) : ControllerBase
 {
     // IPN: VNPAY server calls this URL to notify payment result. Verify and update order, return 200.
