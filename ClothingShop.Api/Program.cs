@@ -31,6 +31,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<VnPayService>();
 builder.Services.AddScoped<ExchangeRateService>();
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<ProductService>();
 builder.Services.AddHttpClient("exchange", c =>
 {
     c.BaseAddress = new Uri("https://api.exchangerate.host");

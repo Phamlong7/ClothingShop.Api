@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using ClothingShop.Api.Data;
+using ClothingShop.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,7 @@ namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/payos/webhook")]
-public class PayosWebhookController(AppDbContext db, IConfiguration configuration, ILogger<PayosWebhookController> logger) : ControllerBase
+public class PayosWebhookController(OrderService orderService, IConfiguration configuration, ILogger<PayosWebhookController> logger) : ControllerBase
 {
     // PayOS sends webhook with payload and signature header. Verify and mark order paid.
     [HttpPost]
@@ -55,37 +56,33 @@ public class PayosWebhookController(AppDbContext db, IConfiguration configuratio
         if (string.IsNullOrWhiteSpace(orderCode)) return BadRequest();
 
         if (!Guid.TryParse(orderCode, out var id)) return BadRequest();
-        var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id);
-        if (order is null) return Ok(new { ok = true });
 
         // Debug logging
-        logger.LogInformation("PayOS Webhook - OrderCode: {OrderCode}, Status: {Status}, Current Order Status: {CurrentStatus}", 
-            orderCode, status, order.Status);
+        logger.LogInformation("PayOS Webhook - OrderCode: {OrderCode}, Status: {Status}", orderCode, status);
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase))
+            string? newStatus = status.ToUpper() switch
             {
-                order.Status = "paid";
-                logger.LogInformation("PayOS Webhook - Updated order {OrderId} to PAID", order.Id);
-            }
-            else if (string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals(status, "FAILED", StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
+                "PAID" => "paid",
+                "CANCELLED" or "FAILED" or "EXPIRED" => "failed",
+                _ => null
+            };
+
+            if (newStatus is not null)
             {
-                order.Status = "failed";
-                logger.LogInformation("PayOS Webhook - Updated order {OrderId} to FAILED", order.Id);
+                await orderService.UpdateOrderStatusAsync(id, newStatus);
+                logger.LogInformation("PayOS Webhook - Updated order {OrderId} to {Status}", id, newStatus);
             }
             else
             {
-                logger.LogWarning("PayOS Webhook - Unknown status {Status} for order {OrderId}", status, order.Id);
+                logger.LogWarning("PayOS Webhook - Unknown status {Status} for order {OrderId}", status, id);
             }
         }
         else
         {
-            logger.LogWarning("PayOS Webhook - No status provided for order {OrderId}", order.Id);
+            logger.LogWarning("PayOS Webhook - No status provided for order {OrderId}", id);
         }
-        await db.SaveChangesAsync();
 
         return Ok(new { ok = true });
     }
