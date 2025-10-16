@@ -3,12 +3,13 @@ using System.Text;
 using ClothingShop.Api.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/payos/webhook")]
-public class PayosWebhookController(AppDbContext db, IConfiguration configuration) : ControllerBase
+public class PayosWebhookController(AppDbContext db, IConfiguration configuration, ILogger<PayosWebhookController> logger) : ControllerBase
 {
     // PayOS sends webhook with payload and signature header. Verify and mark order paid.
     [HttpPost]
@@ -57,18 +58,32 @@ public class PayosWebhookController(AppDbContext db, IConfiguration configuratio
         var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id);
         if (order is null) return Ok(new { ok = true });
 
+        // Debug logging
+        logger.LogInformation("PayOS Webhook - OrderCode: {OrderCode}, Status: {Status}, Current Order Status: {CurrentStatus}", 
+            orderCode, status, order.Status);
+
         if (!string.IsNullOrWhiteSpace(status))
         {
             if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase))
             {
                 order.Status = "paid";
+                logger.LogInformation("PayOS Webhook - Updated order {OrderId} to PAID", order.Id);
             }
             else if (string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(status, "FAILED", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
             {
                 order.Status = "failed";
+                logger.LogInformation("PayOS Webhook - Updated order {OrderId} to FAILED", order.Id);
             }
+            else
+            {
+                logger.LogWarning("PayOS Webhook - Unknown status {Status} for order {OrderId}", status, order.Id);
+            }
+        }
+        else
+        {
+            logger.LogWarning("PayOS Webhook - No status provided for order {OrderId}", order.Id);
         }
         await db.SaveChangesAsync();
 
