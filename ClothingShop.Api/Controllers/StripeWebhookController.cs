@@ -45,7 +45,10 @@ public class StripeWebhookController : ControllerBase
         Event stripeEvent;
         try
         {
-            stripeEvent = EventUtility.ConstructEvent(json, sigHeader, secret);
+            stripeEvent = EventUtility.ConstructEvent(json, sigHeader, secret, throwOnApiVersionMismatch: false);
+            _logger.LogInformation("Stripe webhook received: {EventType} for order {ClientReferenceId}", 
+                stripeEvent.Type, 
+                stripeEvent.Data.Object is Stripe.Checkout.Session s ? s.ClientReferenceId : "unknown");
         }
         catch (StripeException ex)
         {
@@ -64,6 +67,7 @@ public class StripeWebhookController : ControllerBase
             if (session?.ClientReferenceId != null && Guid.TryParse(session.ClientReferenceId, out var orderId))
             {
                 await _orderService.UpdateOrderStatusAsync(orderId, "paid");
+                _logger.LogInformation("Order {OrderId} updated to paid (checkout.session.completed)", orderId);
             }
         }
         else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
@@ -73,6 +77,7 @@ public class StripeWebhookController : ControllerBase
             if (orderIdStr != null && Guid.TryParse(orderIdStr, out var orderId))
             {
                 await _orderService.UpdateOrderStatusAsync(orderId, "paid");
+                _logger.LogInformation("Order {OrderId} updated to paid (payment_intent.succeeded)", orderId);
             }
         }
 
