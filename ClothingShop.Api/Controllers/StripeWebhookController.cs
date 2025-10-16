@@ -1,4 +1,5 @@
 using ClothingShop.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
 
@@ -6,6 +7,7 @@ namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/stripe/webhook")]
+[AllowAnonymous]
 public class StripeWebhookController : ControllerBase
 {
     private readonly OrderService _orderService;
