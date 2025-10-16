@@ -1,6 +1,8 @@
 using ClothingShop.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Stripe;
 
 namespace ClothingShop.Api.Controllers;
@@ -12,11 +14,13 @@ public class StripeWebhookController : ControllerBase
 {
     private readonly OrderService _orderService;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<StripeWebhookController> _logger;
 
-    public StripeWebhookController(OrderService orderService, IConfiguration configuration)
+    public StripeWebhookController(OrderService orderService, IConfiguration configuration, ILogger<StripeWebhookController> logger)
     {
         _orderService = orderService;
         _configuration = configuration;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -25,15 +29,33 @@ public class StripeWebhookController : ControllerBase
         // Read raw body to satisfy Stripe signature validation
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
         var sigHeader = Request.Headers["Stripe-Signature"].FirstOrDefault();
-        var secret = _configuration["Stripe:WebhookSecret"]; 
+        if (string.IsNullOrWhiteSpace(sigHeader))
+        {
+            _logger.LogWarning("Stripe webhook request missing signature header.");
+            return Unauthorized();
+        }
+
+        var secret = ResolveWebhookSecret();
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            _logger.LogError("Stripe webhook secret is not configured. Check environment variable 'Stripe:WebhookSecret' or 'STRIPE_WEBHOOK_SECRET'.");
+            return Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Stripe webhook secret not configured");
+        }
+
         Event stripeEvent;
         try
         {
             stripeEvent = EventUtility.ConstructEvent(json, sigHeader, secret);
         }
-        catch
+        catch (StripeException ex)
         {
+            _logger.LogWarning(ex, "Stripe webhook signature validation failed.");
             return Unauthorized();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Stripe webhook payload processing failed.");
+            return BadRequest();
         }
 
         if (stripeEvent.Type == Events.CheckoutSessionCompleted)
@@ -55,6 +77,24 @@ public class StripeWebhookController : ControllerBase
         }
 
         return Ok();
+    }
+
+    private string? ResolveWebhookSecret()
+    {
+        var configured = _configuration["Stripe:WebhookSecret"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
+        configured = _configuration["Stripe__WebhookSecret"];
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
+        var env = Environment.GetEnvironmentVariable("STRIPE_WEBHOOK_SECRET");
+        return string.IsNullOrWhiteSpace(env) ? null : env;
     }
 }
 
