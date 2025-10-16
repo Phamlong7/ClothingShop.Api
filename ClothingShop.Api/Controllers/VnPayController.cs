@@ -82,9 +82,16 @@ public class VnPayController(AppDbContext db, IConfiguration configuration, ILog
             return BadRequest(new { message = "Missing secure hash" });
 
         vnp_Params.Remove("vnp_SecureHash");
-        var sorted = new SortedDictionary<string, string>(vnp_Params);
+        var sorted = new SortedDictionary<string, string>(vnp_Params, StringComparer.Ordinal);
+        
+        // VNPAY return URL uses form-encoded format (space = '+')
         var signData = string.Join('&', sorted.Select(kvp => $"{kvp.Key}={kvp.Value}"));
         var calcHash = CryptoHelper.HmacSHA512(hashSecret, signData);
+        
+        // Debug logging
+        logger.LogInformation("VNPAY Return - SignData: {SignData}", signData);
+        logger.LogInformation("VNPAY Return - CalcHash: {CalcHash}", calcHash);
+        logger.LogInformation("VNPAY Return - ReceivedHash: {ReceivedHash}", receivedHash);
         try
         {
             var calcBytes = Convert.FromHexString(calcHash);
