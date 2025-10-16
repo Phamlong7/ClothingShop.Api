@@ -1,91 +1,52 @@
-﻿using ClothingShop.Api.Data;
-using ClothingShop.Api.Dtos;
-using ClothingShop.Api.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using ClothingShop.Api.Dtos;
+using ClothingShop.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController(AppDbContext db) : ControllerBase
+public class ProductsController(ProductService productService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? q, [FromQuery] int page = 1, [FromQuery] int limit = 12)
+    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int limit = 10, [FromQuery] string? q = null)
     {
-        if (page < 1) page = 1;
-        if (limit < 1 || limit > 100) limit = 12;
-
-        var query = db.Products.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(q))
-            query = query.Where(p => EF.Functions.ILike(p.Name, $"%{q}%"));
-
-        var total = await query.CountAsync();
-        var data = await query.OrderByDescending(p => p.CreatedAt)
-                              .Skip((page - 1) * limit)
-                              .Take(limit)
-                              .ToListAsync();
-
-        return Ok(new { data, total, page, pages = (int)Math.Ceiling(total / (double)limit) });
+        var (products, total, currentPage, pages) = await productService.GetProductsAsync(page, limit, q);
+        return Ok(new { data = products, total, page = currentPage, pages });
     }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var item = await db.Products.FindAsync(id);
-        return item is null ? NotFound() : Ok(item);
+        var product = await productService.GetProductByIdAsync(id);
+        if (product is null) return NotFound();
+        return Ok(product);
     }
 
-    [Authorize]
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> Create([FromBody] ProductCreateDto dto)
     {
-        var entity = new Product
-        {
-            Name = dto.Name.Trim(),
-            Description = dto.Description.Trim(),
-            Price = dto.Price,
-            Image = string.IsNullOrWhiteSpace(dto.Image) ? null : dto.Image!.Trim()
-        };
-
-        db.Products.Add(entity);
-        await db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = entity.Id }, entity);
+        var product = await productService.CreateProductAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 
-    [Authorize]
     [HttpPut("{id:guid}")]
+    [Authorize]
     public async Task<IActionResult> Update(Guid id, [FromBody] ProductUpdateDto dto)
     {
-        var entity = await db.Products.FindAsync(id);
-        if (entity is null) return NotFound();
-
-        if (dto.Name is not null)
-            entity.Name = dto.Name.Trim();
-        
-        if (dto.Description is not null)
-            entity.Description = dto.Description.Trim();
-        
-        if (dto.Price.HasValue)
-            entity.Price = dto.Price.Value;
-        
-        if (dto.Image is not null)
-            entity.Image = string.IsNullOrWhiteSpace(dto.Image) ? null : dto.Image.Trim();
-
-        entity.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
-        return Ok(entity);
+        var product = await productService.UpdateProductAsync(id, dto);
+        if (product is null) return NotFound();
+        return Ok(product);
     }
 
-    [Authorize]
     [HttpDelete("{id:guid}")]
+    [Authorize]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var entity = await db.Products.FindAsync(id);
-        if (entity is null) return NotFound();
-        db.Products.Remove(entity);
-        await db.SaveChangesAsync();
+        var success = await productService.DeleteProductAsync(id);
+        if (!success) return NotFound();
         return Ok(new { ok = true });
     }
 }

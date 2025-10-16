@@ -79,6 +79,55 @@ public class VnPayService
 
         return (payUrl, signData);
     }
+
+    public Task<(bool Success, Guid OrderId, string Status)> ProcessReturnAsync(string queryString)
+    {
+        if (string.IsNullOrEmpty(queryString))
+        {
+            throw new ArgumentException("Empty query string");
+        }
+
+        var rawQuery = queryString.StartsWith('?') ? queryString.Substring(1) : queryString;
+        var hashIndex = rawQuery.LastIndexOf("&vnp_SecureHash=");
+        if (hashIndex < 0)
+        {
+            throw new ArgumentException("Missing vnp_SecureHash parameter");
+        }
+
+        var signData = rawQuery.Substring(0, hashIndex);
+        var receivedHash = rawQuery.Substring(hashIndex + "&vnp_SecureHash=".Length);
+
+        // Verify signature
+        var hashSecret = _configuration["VnPay:HashSecret"] ?? string.Empty;
+        var calcHash = Convert.ToHexString(
+            new System.Security.Cryptography.HMACSHA512(Encoding.UTF8.GetBytes(hashSecret))
+                .ComputeHash(Encoding.UTF8.GetBytes(signData))
+        );
+
+        if (!string.Equals(calcHash, receivedHash, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Invalid signature");
+        }
+
+        // Parse parameters
+        var queryParams = System.Web.HttpUtility.ParseQueryString(rawQuery);
+        var orderIdStr = queryParams["vnp_TxnRef"];
+        var transStatus = queryParams["vnp_TransactionStatus"];
+        var responseCode = queryParams["vnp_ResponseCode"];
+
+        if (string.IsNullOrEmpty(orderIdStr) || string.IsNullOrEmpty(transStatus))
+        {
+            throw new ArgumentException("Missing transaction reference or status");
+        }
+
+        if (!Guid.TryParseExact(orderIdStr, "N", out var orderId))
+        {
+            throw new ArgumentException("Invalid order ID format");
+        }
+
+        var status = (transStatus == "00" && responseCode == "00") ? "paid" : "failed";
+        return Task.FromResult((true, orderId, status));
+    }
 }
 
 
