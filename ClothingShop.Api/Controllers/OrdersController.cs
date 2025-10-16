@@ -27,12 +27,13 @@ public class OrdersController(OrderService orderService) : BaseController
         {
             var (order, paymentData) = await orderService.CreateOrderAsync(userId, dto);
             
+            var orderId = ((dynamic)order).Id;
             if (paymentData is not null)
             {
-                return CreatedAtAction(nameof(GetById), new { id = ((dynamic)order).Id }, new { order, payment = paymentData });
+                return CreatedAtAction(nameof(GetById), new { id = orderId }, new { id = orderId, order, payment = paymentData });
             }
-            
-            return CreatedAtAction(nameof(GetById), new { id = ((dynamic)order).Id }, order);
+
+            return CreatedAtAction(nameof(GetById), new { id = orderId }, new { id = orderId, order });
         }
         catch (InvalidOperationException ex)
         {

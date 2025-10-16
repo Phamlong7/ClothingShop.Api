@@ -108,8 +108,8 @@ Header: `Authorization: Bearer <token>`
 - POST `/api/orders`
   - Body:
     - simulate: `{ }` or `{ "paymentMethod": "simulate" }` → creates order and returns it
-    - PayOS: `{ "paymentMethod": "payos" }` → returns `{ order, payos }` with PayOS payload (e.g., payment link)
-    - VNPAY: `{ "paymentMethod": "vnpay" }` → returns `{ order, vnpay: { url } }` payment URL
+    - PayOS: `{ "paymentMethod": "payos" }` → returns `{ id, order, payment }` where `payment` is PayOS payload (e.g., payment link fields)
+    - VNPAY: `{ "paymentMethod": "vnpay" }` → returns `{ id, order, payment: { url, debug_sign_data } }`
   - Responses: `201 Created`
 
 - POST `/api/orders/{id}/pay` (simulate)
@@ -142,16 +142,23 @@ OrderItem {
 
 ### VNPAY
 - POST `/api/vnpay/create/{orderId}` → trả `url` thanh toán cho đơn hàng
-- GET `/api/vnpay/return` → xác thực chữ ký và cập nhật order `status = "paid"` khi `vnp_TransactionStatus == "00"`
+- GET `/api/vnpay/return` → xác thực chữ ký và cập nhật order
+- GET `/api/vnpay/ipn` → IPN do VNPAY gọi, xác thực và cập nhật order, trả `200 OK`
 
-Ghi chú:
+Ghi chú quan trọng (theo tài liệu VNPAY):
 - `vnp_Amount` là VND đơn vị nhỏ nhất (×100). Hệ thống quy đổi USD→VND theo tỷ giá sống `exchangerate.host` (fallback cấu hình `VnPay:UsdToVndRate`).
-- Ký HMAC-SHA512 theo form-encoded (space = '+'), `vnp_SecureHashType=HmacSHA512`.
+- `vnp_CreateDate` theo múi giờ GMT+7 định dạng `yyyyMMddHHmmss`.
+- Ký HMAC-SHA512 trên chuỗi query đã form-encode (space = '+') với khóa `VnPay:HashSecret`, sắp xếp key theo ASCII (Ordinal). Thêm `vnp_SecureHashType=HmacSHA512` vào URL.
+- Xác thực Return/IPN bằng cách lấy raw query trước khi decode, bỏ `vnp_SecureHash`/`vnp_SecureHashType`, ký lại chuỗi encode để so khớp.
+- Thành công khi: `vnp_ResponseCode == "00"` và `vnp_TransactionStatus == "00"` → cập nhật `status = "paid"`, ngược lại `failed`.
+  - Tài liệu tham khảo: [VNPAY Pay docs](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html)
 
 ### PayOS
 - Webhook: POST `/api/payos/webhook`
-  - Verify chữ ký header `X-Payos-Signature` = HMAC-SHA256(body, `PayOS:ChecksumKey`) (so sánh constant-time)
-  - Cập nhật trạng thái đơn: `paid` khi thanh toán thành công, `failed` khi cancelled/failed/expired.
+  - Verify chữ ký HMAC-SHA256 trên JSON thô của trường `data` dùng `PayOS:ChecksumKey`. `signature` lấy từ body (ưu tiên) hoặc header fallback.
+  - So sánh chữ ký bằng constant-time (`FixedTimeEquals`).
+  - Thành công khi `data.code == "00"` → cập nhật `status = "paid"`, ngược lại `failed`.
+  - Tài liệu tham khảo: [payOS Payment Webhook](https://payos.vn/docs/du-lieu-tra-ve/webhook/#tag/payment-webhook)
 
 ## Error Handling
 

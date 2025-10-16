@@ -132,6 +132,16 @@ builder.Services.AddHttpClient("payos", (sp, http) =>
     }
 });
 
+// Accessor for accessing HttpContext in services (used by VnPayService)
+builder.Services.AddHttpContextAccessor();
+
+// Register services
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<VnPayService>();
+builder.Services.AddScoped<ExchangeRateService>();
+
 // ProblemDetails & Validation responses
 builder.Services.AddProblemDetails();
 
