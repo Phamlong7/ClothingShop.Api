@@ -45,7 +45,18 @@ public class StripeService
             SuccessUrl = successUrl,
             CancelUrl = cancelUrl,
             ClientReferenceId = order.Id.ToString(),
-            LineItems = lineItems
+            LineItems = lineItems,
+            Metadata = new Dictionary<string, string>
+            {
+                { "orderId", order.Id.ToString() }
+            },
+            PaymentIntentData = new SessionPaymentIntentDataOptions
+            {
+                Metadata = new Dictionary<string, string>
+                {
+                    { "orderId", order.Id.ToString() }
+                }
+            }
         };
 
         var service = new SessionService(_client);
