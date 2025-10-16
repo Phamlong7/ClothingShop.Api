@@ -9,7 +9,7 @@ namespace ClothingShop.Api.Controllers;
 
 [ApiController]
 [Route("api/vnpay")] 
-public class VnPayController(OrderService orderService, VnPayService vnPayService, ILogger<VnPayController> logger) : ControllerBase
+public class VnPayController(OrderService orderService, VnPayService vnPayService, ILogger<VnPayController> logger, IConfiguration configuration) : ControllerBase
 {
     // Create payment URL for an order (simple, unsecured demo)
     [HttpPost("create/{orderId:guid}")]
@@ -36,17 +36,30 @@ public class VnPayController(OrderService orderService, VnPayService vnPayServic
         try
         {
             var result = await vnPayService.ProcessReturnAsync(Request.QueryString.Value ?? string.Empty);
+            
             if (result.Success)
             {
                 await orderService.UpdateOrderStatusAsync(result.OrderId, result.Status);
                 logger.LogInformation("Order {OrderId} status updated to '{Status}'.", result.OrderId, result.Status);
             }
-            return Ok(new { ok = true, message = "Payment status updated." });
+            
+            var frontendUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+            var responseCode = Request.Query["vnp_ResponseCode"].ToString();
+            
+            var redirectUrl = $"{frontendUrl}/payment-result?orderId={result.OrderId}&vnp_ResponseCode={responseCode}";
+            
+            logger.LogInformation("Redirecting to frontend: {RedirectUrl}", redirectUrl);
+            
+            return Redirect(redirectUrl);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "VNPAY Return processing failed");
-            return BadRequest(new { message = ex.Message });
+            
+            var frontendUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+            var redirectUrl = $"{frontendUrl}/payment-result?error={Uri.EscapeDataString(ex.Message)}";
+            
+            return Redirect(redirectUrl);
         }
     }
 
