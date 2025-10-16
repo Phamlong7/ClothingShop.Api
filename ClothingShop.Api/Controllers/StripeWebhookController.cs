@@ -20,6 +20,7 @@ public class StripeWebhookController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Handle()
     {
+        // Read raw body to satisfy Stripe signature validation
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
         var sigHeader = Request.Headers["Stripe-Signature"].FirstOrDefault();
         var secret = _configuration["Stripe:WebhookSecret"]; 
@@ -37,6 +38,15 @@ public class StripeWebhookController : ControllerBase
         {
             var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
             if (session?.ClientReferenceId != null && Guid.TryParse(session.ClientReferenceId, out var orderId))
+            {
+                await _orderService.UpdateOrderStatusAsync(orderId, "paid");
+            }
+        }
+        else if (stripeEvent.Type == Events.PaymentIntentSucceeded)
+        {
+            var intent = stripeEvent.Data.Object as Stripe.PaymentIntent;
+            var orderIdStr = intent?.Metadata != null && intent.Metadata.TryGetValue("orderId", out var value) ? value : null;
+            if (orderIdStr != null && Guid.TryParse(orderIdStr, out var orderId))
             {
                 await _orderService.UpdateOrderStatusAsync(orderId, "paid");
             }
