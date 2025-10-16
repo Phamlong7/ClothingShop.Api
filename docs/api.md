@@ -2,6 +2,17 @@
 
 Base URL: `/api`
 
+## Frontend changes and quick guide
+
+- Payments now support only VNPAY and Stripe. PayOS was removed.
+- Create order: POST `/api/orders` with `paymentMethod` = `vnpay | stripe | simulate`.
+  - Response includes `payment.url` (open in browser) for `vnpay` and `stripe`.
+- After redirect back to FE, fetch GET `/api/orders/{id}` and branch UI by `status`:
+  - `paid` → show success; otherwise show failure/pending and allow retry.
+- Webhooks for reliability (no FE action):
+  - Stripe → `/api/stripe/webhook`
+  - VNPAY IPN → `/api/vnpay/ipn`
+
 ## Authentication
 
 - POST `/api/auth/register`
@@ -108,8 +119,8 @@ Header: `Authorization: Bearer <token>`
 - POST `/api/orders`
   - Body:
     - simulate: `{ }` or `{ "paymentMethod": "simulate" }` → creates order and returns it
-    - PayOS: `{ "paymentMethod": "payos" }` → returns `{ id, order, payment }` where `payment` is PayOS payload (e.g., payment link fields)
     - VNPAY: `{ "paymentMethod": "vnpay" }` → returns `{ id, order, payment: { url, debug_sign_data } }`
+    - Stripe: `{ "paymentMethod": "stripe" }` → returns `{ id, order, payment: { url } }`
   - Responses: `201 Created`
 
 - POST `/api/orders/{id}/pay` (simulate)
@@ -153,12 +164,11 @@ Ghi chú quan trọng (theo tài liệu VNPAY):
 - Thành công khi: `vnp_ResponseCode == "00"` và `vnp_TransactionStatus == "00"` → cập nhật `status = "paid"`, ngược lại `failed`.
   - Tài liệu tham khảo: [VNPAY Pay docs](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html)
 
-### PayOS
-- Webhook: POST `/api/payos/webhook`
-  - Verify chữ ký HMAC-SHA256 trên JSON thô của trường `data` dùng `PayOS:ChecksumKey`. `signature` lấy từ body (ưu tiên) hoặc header fallback.
-  - So sánh chữ ký bằng constant-time (`FixedTimeEquals`).
-  - Thành công khi `data.code == "00"` → cập nhật `status = "paid"`, ngược lại `failed`.
-  - Tài liệu tham khảo: [payOS Payment Webhook](https://payos.vn/docs/du-lieu-tra-ve/webhook/#tag/payment-webhook)
+### Stripe
+- Checkout Session is created server-side; client opens `payment.url`.
+- Webhook: POST `/api/stripe/webhook` (Stripe → Backend)
+  - Verify using `Stripe:WebhookSecret` header `Stripe-Signature`.
+  - On `checkout.session.completed`, order is updated to `paid`.
 
 ## Error Handling
 

@@ -9,13 +9,15 @@ public class OrderService
 {
     private readonly AppDbContext _db;
     private readonly VnPayService _vnPayService;
+    private readonly StripeService _stripeService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
 
-    public OrderService(AppDbContext db, VnPayService vnPayService, IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public OrderService(AppDbContext db, VnPayService vnPayService, StripeService stripeService, IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _db = db;
         _vnPayService = vnPayService;
+        _stripeService = stripeService;
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
     }
@@ -116,28 +118,17 @@ public class OrderService
 
         object? paymentData = null;
 
-        // Handle PayOS payment
-        if (string.Equals(dto.PaymentMethod, "payos", StringComparison.OrdinalIgnoreCase))
-        {
-            var client = _httpClientFactory.CreateClient("payos");
-            var payReq = new
-            {
-                orderCode = order.Id.ToString("N"),
-                amount = (int)Math.Round(order.TotalAmount),
-                description = $"Order {order.Id}",
-                returnUrl = _configuration["PayOS:ReturnUrl"]
-            };
-            var resp = await client.PostAsJsonAsync("/payments", payReq);
-            if (resp.IsSuccessStatusCode)
-            {
-                paymentData = await resp.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-            }
-        }
         // Handle VNPAY payment
-        else if (string.Equals(dto.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(dto.PaymentMethod, "vnpay", StringComparison.OrdinalIgnoreCase))
         {
             var (payUrl, rawSignData) = _vnPayService.CreatePaymentUrl(order);
             paymentData = new { url = payUrl, debug_sign_data = rawSignData };
+        }
+        // Handle Stripe payment
+        else if (string.Equals(dto.PaymentMethod, "stripe", StringComparison.OrdinalIgnoreCase))
+        {
+            var session = await _stripeService.CreateCheckoutSessionAsync(order);
+            paymentData = new { url = session.Url };
         }
 
         return (order, paymentData);
